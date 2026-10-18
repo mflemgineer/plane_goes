@@ -42,6 +42,14 @@ _Avoid_: Result, classification, guess
 One moment when the parent asks the app "what is that plane?" from a place, facing a direction, at a time. No photo is involved.
 _Avoid_: Spot, snapshot, photo, query
 
+**Walk**:
+A group of Sightings made on the same outing, such as "this afternoon's walk: 4 planes."
+_Avoid_: Session, trip, outing
+
+**Sighting Log**:
+The history of past Walks and their Sightings, kept only on the parent's phone.
+_Avoid_: History, journal, album
+
 **Kid Line**:
 The one big, picture-heavy line at the top of a Verdict, written for the toddler.
 _Avoid_: Headline, summary
