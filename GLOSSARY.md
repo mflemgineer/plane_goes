@@ -11,7 +11,7 @@ One of the three New York airports the app cares about: LaGuardia (LGA), Newark 
 _Avoid_: Local airport, regional airport, NYC airport
 
 **Other Nearby Airport**:
-An airport near New York that is not a Home Airport, such as Teterboro or Islip.
+A smaller airport near New York, such as Westchester (HPN), Teterboro (TEB) or MacArthur/Islip (ISP). The app names it just like a Home Airport when the flight data says so.
 _Avoid_: Small airport, minor airport
 
 ### Flights
@@ -21,19 +21,19 @@ One aircraft on one journey, as seen in live tracking data, with an origin and a
 _Avoid_: Plane (when meaning the journey), trip
 
 **Arrival**:
-A Flight whose destination is a Home Airport.
+A Flight whose destination is a Home Airport or an Other Nearby Airport.
 _Avoid_: Landing plane, inbound
 
 **Departure**:
-A Flight whose origin is a Home Airport.
+A Flight whose origin is a Home Airport or an Other Nearby Airport.
 _Avoid_: Takeoff plane, outbound
 
 **Overflight**:
-A Flight passing over Brooklyn whose origin and destination are both elsewhere, not a Home Airport.
+A Flight passing over Brooklyn whose origin and destination are both outside the New York area. Its origin and destination are shown when known.
 _Avoid_: Far away, passing plane, through-flight
 
 **Verdict**:
-The app's answer for a Flight: Arrival, Departure, Overflight, or a catch-all (helicopter, small plane, Other Nearby Airport, unknown), so no Flight is forced into a wrong answer.
+The app's answer for a Flight: Arrival, Departure, Overflight, or a catch-all (helicopter, small plane, unknown), so no Flight is forced into a wrong answer.
 _Avoid_: Result, classification, guess
 
 ### Using the app
