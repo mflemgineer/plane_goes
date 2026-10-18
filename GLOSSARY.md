@@ -43,7 +43,7 @@ The child credited with a Sighting. In this family, the Spotter is Davey.
 _Avoid_: Kid, user, player, child
 
 **Sighting**:
-One moment when the parent asks the app "what is that plane?" by pointing the phone at the sky. What's kept is the Flight, its Verdict and the time, never a photo and never where the family was standing.
+One moment when the parent asks the app "what is that plane?" by pointing the phone at the sky. What's kept is the Flight (if one was found), its Verdict and the time, never a photo and never where the family was standing.
 _Avoid_: Spot, snapshot, photo, query
 
 **Walk**:
@@ -59,7 +59,7 @@ The one big, picture-heavy line at the top of a Verdict, written for the toddler
 _Avoid_: Headline, summary
 
 **Mystery Plane**:
-A Sighting where no Flight could be matched. Its Kid Line reads "Looks like Amelia Earhart is flying that one! We could not find it."
+A Sighting where no Flight could be matched. It still counts for the Spotter. Its Kid Line reads "Looks like Amelia Earhart is flying that one! We could not find it."
 _Avoid_: Unknown, error, no match
 
 **Grown-up Details**:
