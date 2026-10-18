@@ -38,8 +38,12 @@ _Avoid_: Result, classification, guess
 
 ### Using the app
 
+**Spotter**:
+The child credited with a Sighting. In this family, the Spotter is Davey.
+_Avoid_: Kid, user, player, child
+
 **Sighting**:
-One moment when the parent asks the app "what is that plane?" from a place, facing a direction, at a time. No photo is involved.
+One moment when the parent asks the app "what is that plane?" by pointing the phone at the sky. What's kept is the Flight, its Verdict and the time, never a photo and never where the family was standing.
 _Avoid_: Spot, snapshot, photo, query
 
 **Walk**:
@@ -47,12 +51,16 @@ A group of Sightings made on the same outing, such as "this afternoon's walk: 4 
 _Avoid_: Session, trip, outing
 
 **Sighting Log**:
-The history of past Walks and their Sightings, kept only on the parent's phone.
+The history of past Walks and their Sightings, kept on the parent's phone. It records the planes, not the family's whereabouts.
 _Avoid_: History, journal, album
 
 **Kid Line**:
 The one big, picture-heavy line at the top of a Verdict, written for the toddler.
 _Avoid_: Headline, summary
+
+**Mystery Plane**:
+A Sighting where no Flight could be matched. Its Kid Line reads "Looks like Amelia Earhart is flying that one! We could not find it."
+_Avoid_: Unknown, error, no match
 
 **Grown-up Details**:
 The smaller facts under the Kid Line for the parent: airline, origin, destination, altitude, time to landing.
