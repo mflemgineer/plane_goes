@@ -4,22 +4,22 @@
  */
 import { spot } from './engine';
 import { fetchNearbyAircraft } from './shell/aircraftApi';
-import { readLocationOnce, type LocationError } from './shell/location';
+import { readLocationOnce } from './shell/location';
+import { setUpAbout } from './ui/about';
+import { friendlyMessage } from './ui/friendlyMessage';
 
 const kidLine = document.querySelector<HTMLParagraphElement>('#kid-line')!;
 const details = document.querySelector<HTMLParagraphElement>('#details')!;
 const button = document.querySelector<HTMLButtonElement>('#spot')!;
 
-const locationMessages: Record<LocationError, string> = {
-  denied: 'Turn on Location for this site in Settings so we can find planes.',
-  unavailable: "We couldn't tell where we are. Try again in a moment.",
-  timeout: "Finding where we are took too long. Try again!",
-  unsupported: "This browser can't share location.",
-};
-
 function show(line: string, detail = ''): void {
   kidLine.textContent = line;
   details.textContent = detail;
+}
+
+function showProblem(problem: unknown): void {
+  const { kidLine: line, detail } = friendlyMessage(problem);
+  show(line, detail);
 }
 
 async function onSpot(): Promise<void> {
@@ -30,19 +30,13 @@ async function onSpot(): Promise<void> {
     try {
       position = await readLocationOnce();
     } catch (reason) {
-      show('Where are we? 🗺️', locationMessages[reason as LocationError] ?? locationMessages.unavailable);
+      showProblem(reason);
       return;
     }
 
     const outcome = await fetchNearbyAircraft(position);
     if (!outcome.ok) {
-      const detail =
-        outcome.reason === 'busy'
-          ? 'The plane finder is busy. Try again in a few seconds.'
-          : outcome.reason === 'offline'
-            ? 'No signal right now. Try again soon.'
-            : 'The plane finder had a hiccup. Try again.';
-      show('Planes are hiding! ☁️', detail);
+      showProblem(outcome.reason);
       return;
     }
 
@@ -52,9 +46,15 @@ async function onSpot(): Promise<void> {
     } else {
       show('Looks like Amelia Earhart is flying that one! We could not find it.');
     }
+  } catch (reason) {
+    // Never show a raw error to the Spotter.
+    console.error(reason);
+    showProblem(reason);
   } finally {
     button.disabled = false;
   }
 }
 
 button.addEventListener('click', () => void onSpot());
+
+setUpAbout();
