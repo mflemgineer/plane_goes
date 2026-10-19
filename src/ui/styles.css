@@ -195,6 +195,41 @@ main[hidden] {
   display: none;
 }
 
+.voice-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.voice-button {
+  min-height: max(var(--tap), 3.5rem);
+  padding: 0 1.5rem;
+  border: 0.1875rem solid var(--ink);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 800;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.voice-button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--panel);
+}
+
+.voice-button:focus-visible {
+  outline: 0.25rem solid var(--link);
+  outline-offset: 0.25rem;
+}
+
+.voice-button[hidden] {
+  display: none;
+}
+
 .allow-button {
   min-height: 4rem;
   padding: 0 2.5rem;

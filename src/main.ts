@@ -6,6 +6,7 @@ import { choose, nearbyPlanes, spot, type AircraftSnapshot, type Match, type Obs
 import { fetchNearbyAircraft } from './shell/aircraftApi';
 import { readLocationOnce } from './shell/location';
 import { requestMotionPermission, waitForPointing, type MotionPermission } from './shell/orientation';
+import { createVoice } from './shell/voice';
 import { setUpAbout } from './ui/about';
 import { friendlyMessage, type CompassProblem } from './ui/friendlyMessage';
 import { renderGrownUpDetails } from './ui/grownUpDetails';
@@ -71,6 +72,7 @@ function showResult(result: SightingResult): void {
   } else {
     show(result.kidLine);
   }
+  voice.speak(kidLine.textContent ?? '');
 }
 
 function showAllNearby(): void {
@@ -132,6 +134,7 @@ function showProblem(problem: unknown): void {
 }
 
 async function onSpot(): Promise<void> {
+  voice.unlock(); // iPhone: speech must be unlocked from the tap itself, before any await.
   button.disabled = true;
   lastSighting = undefined;
   allNearbyButton.hidden = true;
@@ -178,6 +181,26 @@ async function onSpot(): Promise<void> {
     button.disabled = false;
   }
 }
+
+// Voice: muted by default; the sound toggle and replay sit on the result screen.
+const voice = createVoice();
+const soundButton = document.querySelector<HTMLButtonElement>('#sound')!;
+const replayButton = document.querySelector<HTMLButtonElement>('#replay')!;
+
+function renderVoiceControls(): void {
+  const on = !voice.isMuted();
+  soundButton.textContent = on ? '🔊 Sound on' : '🔇 Sound off';
+  soundButton.setAttribute('aria-pressed', String(on));
+  replayButton.hidden = !on;
+}
+
+soundButton.addEventListener('click', () => {
+  voice.setMuted(!voice.isMuted());
+  renderVoiceControls();
+  voice.speak(kidLine.textContent ?? ''); // Speaking from this tap also unlocks iPhone speech.
+});
+replayButton.addEventListener('click', () => voice.speak(kidLine.textContent ?? ''));
+renderVoiceControls();
 
 allowButton.addEventListener('click', () => void onAllow());
 button.addEventListener('click', () => void onSpot());
