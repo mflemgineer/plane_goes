@@ -5,7 +5,8 @@ Point your phone at a plane, tap one big button, and find out where it's going. 
 ## Layout
 
 - `src/engine/` — the **Sighting Engine**: a pure module (no network, sensors or storage). `spot(observation, snapshot)` returns a Sighting Result. Tests live next to it and go through `src/engine/index.ts` only. Real API fixtures are in `src/engine/__fixtures__/`. Aircraft matching (which plane the phone points at) lives in `src/engine/match.ts`; tune `SEARCH_RADIUS_MILES` and `MATCH_TOLERANCE_DEG` there.
-- `src/shell/` — browser adapters: one-shot location, the proxy client.
+- `src/log/` — the **Sighting Log**: a pure module with an injected clock and storage. `createSightingLog({ clock, storage })` adds Sightings (credited to the Spotter), lists Walks newest first and gets/sets the Spotter name. Tests go through `src/log/index.ts` only, with a fake clock and `memoryStorage()`. Records are built from an allow-list, so the observer's location and heading are never stored. Tune the Walk gap with `WALK_GAP_MS`.
+- `src/shell/` — browser adapters: one-shot location, the proxy client, the app's Sighting Log on `localStorage` (`src/shell/sightingLog.ts`).
 - `src/main.ts`, `src/ui/`, `index.html` — the UI shell (plain DOM, no framework).
 - `api/aircraft.ts` — the **position proxy**, a Vercel Node function at `/api/aircraft?lat=..&lon=..[&radius=nm]`. It forwards to adsb.lol with a descriptive User-Agent, caps the radius at 30 nm (default 25), edge-caches for 5 s, and returns HTTP 429 `{"error":"busy"}` when adsb.lol rate-limits. If adsb.lol ever needs an API key, add it in `upstreamHeaders()`.
 

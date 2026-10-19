@@ -6,6 +6,8 @@ import { spot } from './engine';
 import { fetchNearbyAircraft } from './shell/aircraftApi';
 import { readLocationOnce, type LocationError } from './shell/location';
 import { requestMotionPermission, waitForPointing, type MotionPermission } from './shell/orientation';
+import { matchedSighting, sightingLog } from './shell/sightingLog';
+import { renderWalks } from './ui/logScreen';
 
 const kidLine = document.querySelector<HTMLParagraphElement>('#kid-line')!;
 const details = document.querySelector<HTMLParagraphElement>('#details')!;
@@ -14,6 +16,12 @@ const app = document.querySelector<HTMLElement>('#app')!;
 const permissions = document.querySelector<HTMLElement>('#permissions')!;
 const permissionsHelp = document.querySelector<HTMLParagraphElement>('#permissions-help')!;
 const allowButton = document.querySelector<HTMLButtonElement>('#allow')!;
+const spotterScreen = document.querySelector<HTMLElement>('#spotter')!;
+const spotterForm = document.querySelector<HTMLFormElement>('#spotter-form')!;
+const spotterInput = document.querySelector<HTMLInputElement>('#spotter-name')!;
+const spotterCancel = document.querySelector<HTMLButtonElement>('#spotter-cancel')!;
+const logScreen = document.querySelector<HTMLElement>('#log')!;
+const walksList = document.querySelector<HTMLUListElement>('#walks')!;
 
 const SETUP_DONE_KEY = 'plane-goes:permissions-asked';
 
@@ -55,9 +63,13 @@ function rememberSetupDone(): void {
   }
 }
 
-function showScreen(screen: 'permissions' | 'spot'): void {
+type Screen = 'permissions' | 'spot' | 'spotter' | 'log';
+
+function showScreen(screen: Screen): void {
   permissions.hidden = screen !== 'permissions';
   app.hidden = screen !== 'spot';
+  spotterScreen.hidden = screen !== 'spotter';
+  logScreen.hidden = screen !== 'log';
 }
 
 /** First-run screen: asks for motion/compass (must be first, straight from the tap) and then location. */
@@ -123,15 +135,80 @@ async function onSpot(): Promise<void> {
 
     const result = spot({ ...position, ...pointing, time }, outcome.snapshot);
     if (result.kind === 'matched') {
-      show(`${result.flight.callsign} ✈️`, `${result.flight.distanceNm.toFixed(1)} nm away`);
+      const line = `${result.flight.callsign} ✈️`;
+      show(line, `${result.flight.distanceNm.toFixed(1)} nm away`);
+      saveSighting(() => sightingLog.addSighting(matchedSighting({ flight: result.flight, kidLine: line, snapshot: outcome.snapshot })));
     } else {
       show(result.kidLine);
+      saveSighting(() => sightingLog.addSighting({ verdict: { kind: 'mystery' }, kidLine: result.kidLine }));
     }
   } finally {
     button.disabled = false;
   }
 }
 
+/** Every Sighting is saved without an extra tap. A storage failure must never spoil the Verdict. */
+function saveSighting(save: () => unknown): void {
+  try {
+    save();
+  } catch {
+    // Storage full or blocked: the Sighting just isn't kept.
+  }
+}
+
+/**
+ * Call when the parent closes an Ambiguous "not that one?" list without choosing:
+ * the Sighting still counts, as a Mystery Plane.
+ */
+export function onAmbiguousDismissed(): void {
+  saveSighting(() => sightingLog.addDismissedAmbiguous());
+}
+
+/** The screen to show once the Spotter has a name. */
+function homeScreen(): Screen {
+  return readSetupDone() ? 'spot' : 'permissions';
+}
+
+/** First launch asks for the Spotter's name; the ⚙️ button on the Log screen changes it later. */
+function openSpotterPrompt(changing: boolean): void {
+  spotterInput.value = sightingLog.getSpotterName() ?? '';
+  spotterCancel.hidden = !changing;
+  showScreen('spotter');
+  spotterInput.focus();
+}
+
+function onSpotterSaved(event: SubmitEvent): void {
+  event.preventDefault();
+  const name = spotterInput.value.trim();
+  if (!name) return;
+  const changing = sightingLog.getSpotterName() !== null;
+  try {
+    sightingLog.setSpotterName(name);
+  } catch {
+    // Storage blocked: keep going; we'll ask again next launch.
+  }
+  if (changing) openLog();
+  else showScreen(homeScreen());
+}
+
+function openLog(): void {
+  let walks: ReturnType<typeof sightingLog.listWalks> = [];
+  try {
+    walks = sightingLog.listWalks();
+  } catch {
+    // Unreadable storage: show an empty log.
+  }
+  renderWalks(walksList, walks, sightingLog.getSpotterName());
+  showScreen('log');
+}
+
 allowButton.addEventListener('click', () => void onAllow());
 button.addEventListener('click', () => void onSpot());
-showScreen(readSetupDone() ? 'spot' : 'permissions');
+spotterForm.addEventListener('submit', onSpotterSaved);
+spotterCancel.addEventListener('click', openLog);
+document.querySelector('#open-log')!.addEventListener('click', openLog);
+document.querySelector('#log-back')!.addEventListener('click', () => showScreen('spot'));
+document.querySelector('#settings')!.addEventListener('click', () => openSpotterPrompt(true));
+
+if (sightingLog.getSpotterName() === null) openSpotterPrompt(false);
+else showScreen(homeScreen());
