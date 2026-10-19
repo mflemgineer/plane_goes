@@ -129,6 +129,35 @@ describe('Stored Sightings', () => {
     expect(reloaded[0].time).toBe(new Date(2026, 9, 19, 9, 0).getTime());
   });
 
+  it('corrects a Sighting when the parent picks the right plane afterwards, keeping its ID, time and Spotter', () => {
+    const storage = memoryStorage();
+    const clock = fakeClock(new Date(2026, 9, 19, 9, 0));
+    const log = createSightingLog({ clock, storage });
+    log.setSpotterName('Davey');
+    const first = log.addSighting(mysteryPlane);
+    clock.advanceMinutes(1);
+    log.setSpotterName('Rosie');
+    const corrected = log.correctSighting(first.id, jfkArrival);
+
+    const sightings = createSightingLog({ clock, storage }).listWalks()[0].sightings;
+    expect(sightings).toHaveLength(1);
+    expect(sightings[0]).toEqual(corrected);
+    expect(corrected).toMatchObject({
+      id: first.id,
+      time: first.time,
+      spotter: 'Davey',
+      verdict: { kind: 'arrival', airports: ['JFK'] },
+      aircraft: jfkArrival.aircraft,
+    });
+  });
+
+  it('adds a new Sighting when asked to correct one that is no longer kept', () => {
+    const clock = fakeClock(new Date(2026, 9, 19, 9, 0));
+    const log = createSightingLog({ clock, storage: memoryStorage() });
+    log.correctSighting('gone', jfkArrival);
+    expect(log.listWalks()[0].sightings).toHaveLength(1);
+  });
+
   it('keeps aircraft identifiers only for matched Sightings', () => {
     const clock = fakeClock(new Date(2026, 9, 19, 9, 0));
     const log = createSightingLog({ clock, storage: memoryStorage() });

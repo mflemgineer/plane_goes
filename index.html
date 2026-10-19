@@ -4,8 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#7fc8f8" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#bfe6ff" />
     <title>Plane Goes</title>
+    <meta name="description" content="Point at a plane, tap Spot, and find out where it's going." />
+
+    <!-- Home-screen install: full-screen on iPhone, with the plane icon. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Plane Goes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192" />
+
     <link rel="stylesheet" href="/src/ui/styles.css" />
   </head>
   <body>
@@ -40,10 +53,49 @@
       <div class="top-bar">
         <button id="open-log" class="text-button" type="button">📒 Log</button>
       </div>
+      <button id="about-open" class="about-open" type="button" aria-haspopup="dialog" aria-controls="about">
+        About
+      </button>
       <p id="kid-line" class="kid-line" aria-live="polite">Spot a plane! ✈️</p>
       <p id="details" class="details"></p>
+      <section id="pick" class="pick" hidden>
+        <p id="pick-title" class="pick-title"></p>
+        <ul id="pick-list" class="pick-list"></ul>
+      </section>
+      <button id="all-nearby" class="link-button" type="button" hidden>All nearby planes</button>
+      <div class="voice-controls">
+        <button id="sound" class="voice-button" type="button" aria-pressed="false">🔇 Sound off</button>
+        <button id="replay" class="voice-button" type="button" hidden>🔁 Say it again</button>
+      </div>
       <button id="spot" class="spot-button" type="button">Spot!</button>
     </main>
+
+    <dialog id="about" class="about" aria-labelledby="about-title">
+      <h2 id="about-title">About Plane Goes</h2>
+      <p>Point the back of the phone at a plane and tap <strong>Spot!</strong></p>
+      <h3>Where the flight data comes from</h3>
+      <ul>
+        <li>
+          Live plane positions: <a href="https://adsb.lol" target="_blank" rel="noopener">adsb.lol</a>, made available
+          under the
+          <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener"
+            >Open Database License (ODbL)</a
+          >.
+        </li>
+        <li>Flight routes: <a href="https://www.adsbdb.com" target="_blank" rel="noopener">adsbdb</a>.</li>
+        <li>Backup routes: <a href="https://hexdb.io" target="_blank" rel="noopener">hexdb.io</a>.</li>
+      </ul>
+      <p>Thank you to the volunteers who feed and run these free services.</p>
+      <h3>Privacy</h3>
+      <p>
+        Your location is read only when you tap Spot, to find nearby planes. The app never saves where you were
+        standing.
+      </p>
+      <form method="dialog">
+        <button class="about-close" type="submit">Back to the sky</button>
+      </form>
+    </dialog>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

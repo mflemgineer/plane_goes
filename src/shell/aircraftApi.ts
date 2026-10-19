@@ -6,12 +6,19 @@ export type FetchAircraftOutcome =
   | { ok: true; snapshot: AircraftSnapshot }
   | { ok: false; reason: 'busy' | 'offline' | 'error' };
 
-export async function fetchNearbyAircraft(position: Position): Promise<FetchAircraftOutcome> {
+/** A walk with one bar of signal shouldn't leave the button spinning forever. */
+const DEFAULT_TIMEOUT_MS = 12000;
+
+export async function fetchNearbyAircraft(
+  position: Position,
+  { timeoutMs = DEFAULT_TIMEOUT_MS }: { timeoutMs?: number } = {},
+): Promise<FetchAircraftOutcome> {
   const url = `/api/aircraft?lat=${position.lat}&lon=${position.lon}`;
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
   } catch {
+    // No network, or no answer in time: both feel like "no signal" on a walk.
     return { ok: false, reason: 'offline' };
   }
   if (response.status === 429) return { ok: false, reason: 'busy' };

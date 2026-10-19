@@ -47,6 +47,19 @@ function pickAircraft(aircraft: LoggedAircraft): LoggedAircraft {
   return picked;
 }
 
+function buildRecord(id: string, spotter: string, time: number, input: SightingInput): StoredSighting {
+  const sighting: StoredSighting = {
+    id,
+    formatVersion: SIGHTING_FORMAT_VERSION,
+    spotter,
+    time,
+    verdict: pickVerdict(input.verdict),
+    kidLine: input.kidLine,
+  };
+  if (input.verdict.kind !== 'mystery' && input.aircraft) sighting.aircraft = pickAircraft(input.aircraft);
+  return sighting;
+}
+
 function defaultId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
@@ -79,17 +92,24 @@ export function createSightingLog({ clock, storage, newId = defaultId }: Sightin
 
     /** Saves a Sighting, credited to the current Spotter, at the clock's current time. */
     addSighting(input: SightingInput): StoredSighting {
-      const sighting: StoredSighting = {
-        id: newId(),
-        formatVersion: SIGHTING_FORMAT_VERSION,
-        spotter: storage.getItem(SPOTTER_KEY) ?? '',
-        time: clock.now(),
-        verdict: pickVerdict(input.verdict),
-        kidLine: input.kidLine,
-      };
-      if (input.verdict.kind !== 'mystery' && input.aircraft) sighting.aircraft = pickAircraft(input.aircraft);
+      const sighting = buildRecord(newId(), storage.getItem(SPOTTER_KEY) ?? '', clock.now(), input);
       save([...load(), sighting]);
       return sighting;
+    },
+
+    /**
+     * Replaces what a saved Sighting says (e.g. the parent picked the right plane from a list
+     * after it was saved), keeping its ID, time and Spotter. Adds it if it is no longer kept.
+     */
+    correctSighting(id: string, input: SightingInput): StoredSighting {
+      const sightings = load();
+      const index = sightings.findIndex((s) => s.id === id);
+      if (index < 0) return log.addSighting(input);
+      const { spotter, time } = sightings[index];
+      const corrected = buildRecord(id, spotter, time, input);
+      sightings[index] = corrected;
+      save(sightings);
+      return corrected;
     },
 
     /** An Ambiguous result the parent dismissed without choosing still counts: it is saved as a Mystery Plane. */

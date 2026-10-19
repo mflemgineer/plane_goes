@@ -13,6 +13,15 @@ export const SEARCH_RADIUS_MILES = 25;
 /** Tunable: the best plane must be within this many degrees of where the phone points. */
 export const MATCH_TOLERANCE_DEG = 20;
 
+/**
+ * Tunable: when other planes are within this many degrees of the best match's off-aim angle,
+ * we can't be sure which one is meant (the iPhone compass drifts 10–20°), so we ask "not that one?".
+ */
+export const AMBIGUITY_MARGIN_DEG = 5;
+
+/** Tunable: the most planes offered in a "not that one?" list. */
+export const MAX_AMBIGUOUS_CANDIDATES = 3;
+
 const EARTH_RADIUS_NM = 3440.065;
 const NM_PER_MILE = 0.868976;
 const FEET_PER_NM = 6076.12;
@@ -82,8 +91,16 @@ export function rankByAim(observation: Observation, aircraft: SnapshotAircraft[]
   return candidates.sort((a, b) => a.offAimDeg - b.offAimDeg);
 }
 
-/** The aircraft the phone points at, or undefined when nothing is within tolerance. */
-export function bestMatch(observation: Observation, aircraft: SnapshotAircraft[]): Candidate | undefined {
-  const [best] = rankByAim(observation, aircraft);
-  return best && best.offAimDeg <= MATCH_TOLERANCE_DEG ? best : undefined;
+/**
+ * The aircraft the phone could be pointing at, best-aimed first: empty when nothing is within
+ * tolerance, one when there is a clear winner, several (at most MAX_AMBIGUOUS_CANDIDATES) when
+ * runners-up are within AMBIGUITY_MARGIN_DEG of the best.
+ */
+export function likelyMatches(observation: Observation, aircraft: SnapshotAircraft[]): Candidate[] {
+  const ranked = rankByAim(observation, aircraft);
+  const [best] = ranked;
+  if (!best || best.offAimDeg > MATCH_TOLERANCE_DEG) return [];
+  return ranked
+    .filter((c) => c.offAimDeg <= MATCH_TOLERANCE_DEG && c.offAimDeg - best.offAimDeg <= AMBIGUITY_MARGIN_DEG)
+    .slice(0, MAX_AMBIGUOUS_CANDIDATES);
 }
