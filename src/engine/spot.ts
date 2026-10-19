@@ -1,7 +1,7 @@
+import { describeAircraft } from './describeAircraft';
+import { MYSTERY_PLANE_KID_LINE } from './kidLine';
 import { likelyMatches, rankByAim, type Candidate } from './match';
 import type { AircraftSnapshot, Match, Observation, SightingResult } from './types';
-
-const MYSTERY_KID_LINE = 'Looks like Amelia Earhart is flying that one! We could not find it.';
 
 /**
  * Picks the aircraft the phone is pointing at. Several planes close to the aim → Ambiguous;
@@ -9,7 +9,7 @@ const MYSTERY_KID_LINE = 'Looks like Amelia Earhart is flying that one! We could
  */
 export function spot(observation: Observation, snapshot: AircraftSnapshot): SightingResult {
   const matches = likelyMatches(observation, snapshot.ac).map(toMatch);
-  if (matches.length === 0) return { kind: 'mystery', kidLine: MYSTERY_KID_LINE };
+  if (matches.length === 0) return { kind: 'mystery', kidLine: MYSTERY_PLANE_KID_LINE };
   if (matches.length > 1) return { kind: 'ambiguous', candidates: matches };
   return { kind: 'matched', ...matches[0] };
 }
@@ -29,5 +29,5 @@ export function choose(candidate: Match): SightingResult {
 
 function toMatch({ aircraft: ac, distanceNm }: Candidate): Match {
   const callsign = ac.flight?.trim() || ac.r?.trim() || ac.hex;
-  return { flight: { hex: ac.hex, callsign, distanceNm } };
+  return { flight: { hex: ac.hex, callsign, distanceNm }, ...describeAircraft(ac) };
 }

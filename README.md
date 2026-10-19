@@ -4,9 +4,11 @@ Point your phone at a plane, tap one big button, and find out where it's going. 
 
 ## Layout
 
-- `src/engine/` — the **Sighting Engine**: a pure module (no network, sensors or storage). `spot(observation, snapshot)` returns a Sighting Result. Tests live next to it and go through `src/engine/index.ts` only. Real API fixtures are in `src/engine/__fixtures__/`. Aircraft matching (which plane the phone points at) lives in `src/engine/match.ts`; tune `SEARCH_RADIUS_MILES` and `MATCH_TOLERANCE_DEG` there.
+- `src/engine/` — the **Sighting Engine**: a pure module (no network, sensors or storage). `spot(observation, snapshot)` returns a Sighting Result. Tests live next to it and go through `src/engine/index.ts` only. Real API fixtures are in `src/engine/__fixtures__/`. Aircraft matching (which plane the phone points at) lives in `src/engine/match.ts`; tune `SEARCH_RADIUS_MILES` and `MATCH_TOLERANCE_DEG` there. The airport set lives in `src/engine/airports.ts`; the Verdict's altitude, vertical-rate, distance and track thresholds are named constants at the top of `src/engine/verdict.ts`. Kid Line templates are in `src/engine/kidLine.ts`.
 - `src/shell/` — browser adapters: one-shot location, the proxy client.
 - `src/main.ts`, `src/ui/`, `index.html` — the UI shell (plain DOM, no framework).
+- `src/ui/friendlyMessage.ts` — every failure (no signal, proxy busy, location off, anything unexpected) becomes a gentle message; the UI never shows raw errors.
+- `public/` — the web app manifest and icons for **Add to Home Screen**. `public/icons/icon.svg` is the source; regenerate the PNGs (incl. `apple-touch-icon.png`) with `python3 scripts/make-icons.py` (needs Pillow).
 - `api/aircraft.ts` — the **position proxy**, a Vercel Node function at `/api/aircraft?lat=..&lon=..[&radius=nm]`. It forwards to adsb.lol with a descriptive User-Agent, caps the radius at 30 nm (default 25), edge-caches for 5 s, and returns HTTP 429 `{"error":"busy"}` when adsb.lol rate-limits. If adsb.lol ever needs an API key, add it in `upstreamHeaders()`.
 
 ## Run, test, build

@@ -108,6 +108,21 @@ describe('Sighting Engine: not that one? (Ambiguous)', () => {
     expect(result.candidates.map((c) => c.flight.callsign)).toEqual(['first', 'second']);
   });
 
+  it('gives each candidate its own Verdict and Kid Line', () => {
+    const snapshot = sky(
+      { ...plane('N401FN', { milesEast: 10, altFt: 5000, bearing: 94 }), category: 'A7' },
+      { ...plane('N4431R', { milesEast: 10, altFt: 5000, bearing: 88 }), category: 'A1' },
+    );
+
+    const result = spot(pointing(90, 5.4), snapshot);
+
+    if (result.kind !== 'ambiguous') throw new Error('expected Ambiguous');
+    expect(result.candidates.map((c) => [c.flight.callsign, c.verdict.kind, c.kidLine])).toEqual([
+      ['N4431R', 'small-plane', 'A little plane! Putt-putt-putt! 🛩️'],
+      ['N401FN', 'helicopter', 'A helicopter! Whirr whirr! 🚁'],
+    ]);
+  });
+
   it('returns a single match when the runner-up is clearly farther from the aim', () => {
     // The winner is 1° off the aim; the runner-up is 12° off: still in tolerance, but well outside the margin.
     const snapshot = sky(

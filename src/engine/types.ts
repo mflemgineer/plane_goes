@@ -2,6 +2,7 @@
  * Shapes the Sighting Engine accepts and returns.
  * Vocabulary follows GLOSSARY.md.
  */
+import type { AircraftDescription } from './describeAircraft';
 
 /** Where the parent is standing and where the phone points, at the moment of a Sighting. */
 export interface Observation {
@@ -53,12 +54,11 @@ export interface Flight {
 }
 
 /**
- * One plane the engine offers as an answer. A Matched result is one of these; an Ambiguous
- * result and the all-nearby-planes list are lists of them, so choosing one makes it the answer
- * (`{ kind: 'matched', ...candidate }`). Per-plane answer fields (Verdict, Kid Line, Grown-up
- * Details) belong here so every candidate carries its own.
+ * One plane the engine offers as an answer, with its own Verdict, Kid Line and Grown-up Details.
+ * A Matched result is one of these; an Ambiguous result and the all-nearby-planes list are lists
+ * of them, so choosing one makes it the answer (`{ kind: 'matched', ...candidate }`).
  */
-export interface Match {
+export interface Match extends AircraftDescription {
   flight: Flight;
 }
 
