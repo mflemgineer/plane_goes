@@ -33,19 +33,17 @@ function loggedVerdict(verdict: Match['verdict']): LoggedVerdict {
 export function matchedSighting(match: Match, snapshot: AircraftSnapshot): SightingInput {
   const ac = snapshot.ac.find((a) => a.hex === match.flight.hex);
   const altitudeFt = match.details.altitudeFt ?? (ac?.alt_baro === 'ground' ? 0 : ac?.alt_geom);
-  // Route fields (airline, origin, destination) are kept when the Grown-up Details carry them as text.
-  const route = match.details as Partial<Record<'airline' | 'origin' | 'destination', unknown>>;
-  const text = (value: unknown) => (typeof value === 'string' && value ? value : undefined);
   return {
     verdict: loggedVerdict(match.verdict),
     kidLine: match.kidLine,
     aircraft: {
       hex: match.flight.hex,
       callsign: match.flight.callsign,
-      airline: text(route.airline),
+      airline: match.details.airline,
       aircraftType: match.details.aircraftType,
-      origin: text(route.origin),
-      destination: text(route.destination),
+      // Present only when the route fitted the motion (see the engine's route plausibility).
+      origin: match.details.origin,
+      destination: match.details.destination,
       position: typeof ac?.lat === 'number' && typeof ac.lon === 'number' ? { lat: ac.lat, lon: ac.lon } : undefined,
       altitudeFt,
       minutesToLanding: match.details.minutesToLanding,

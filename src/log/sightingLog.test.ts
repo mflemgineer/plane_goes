@@ -317,6 +317,14 @@ describe('Walk summaries', () => {
   });
 });
 
+it('names an Overflight by its destination city, without the airport code', () => {
+  const clock = fakeClock(new Date(2026, 9, 19, 9, 0));
+  const log = createSightingLog({ clock, storage: memoryStorage() });
+  log.addSighting(overflight('c0ffee', 'London (LHR)'));
+  log.addSighting(overflight('c0ffef', 'London'));
+  expect(log.listWalks()[0].summary).toBe('2 planes — 2 Overflights to London');
+});
+
 describe('Spotter credit', () => {
   it.each([
     [new Date(2026, 9, 19, 8, 15), 'Davey spotted 2 planes this morning'],

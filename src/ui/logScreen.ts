@@ -17,8 +17,8 @@ export function savedDetailLines(sighting: StoredSighting): string[] {
   const ac = sighting.aircraft;
   if (!ac) return sighting.verdict.kind === 'mystery' ? ['No flight data for this one'] : [];
   const lines: string[] = [];
-  if (ac.airline) lines.push(ac.airline);
-  lines.push(`Flight ${ac.callsign ?? ac.hex}`);
+  const flight = `Flight ${ac.callsign ?? ac.hex}`;
+  lines.push(ac.airline ? `${ac.airline} · ${flight}` : flight);
   if (ac.aircraftType) lines.push(`Aircraft ${ac.aircraftType}`);
   if (ac.origin) lines.push(`From ${ac.origin}`);
   if (ac.destination) lines.push(`To ${ac.destination}`);

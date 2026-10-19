@@ -44,7 +44,9 @@ function airportName(code: string): string {
 function groupOf(plane: StoredSighting): { kind: VerdictKind; prefix?: string; suffix?: string } {
   const { kind, airports } = plane.verdict;
   if ((kind === 'arrival' || kind === 'departure') && airports?.length) return { kind, prefix: airportName(airports[0]) };
-  if (kind === 'overflight' && plane.aircraft?.destination) return { kind, suffix: `to ${plane.aircraft.destination}` };
+  // "London (LHR)" reads as "London" in a summary.
+  const destination = plane.aircraft?.destination?.replace(/\s*\([^)]*\)\s*$/, '');
+  if (kind === 'overflight' && destination) return { kind, suffix: `to ${destination}` };
   return { kind };
 }
 

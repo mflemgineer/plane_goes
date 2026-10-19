@@ -2,7 +2,9 @@
 import type { GrownUpDetails } from '../engine';
 
 export function grownUpDetailLines(details: GrownUpDetails): string[] {
-  const lines = [`Flight ${details.callsign}`];
+  const lines = [details.airline ? `${details.airline} · Flight ${details.callsign}` : `Flight ${details.callsign}`];
+  if (details.origin) lines.push(`From ${details.origin}`);
+  if (details.destination) lines.push(`To ${details.destination}`);
   if (details.aircraftType) lines.push(`Aircraft ${details.aircraftType}`);
   if (details.altitudeFt !== undefined) lines.push(`${details.altitudeFt.toLocaleString('en-US')} ft`);
   if (details.minutesToLanding !== undefined) {

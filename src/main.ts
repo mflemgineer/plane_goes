@@ -2,9 +2,19 @@
  * UI shell: wires the Spot button to location + compass → proxy → Sighting Engine.
  * Flight data is fetched only on a tap, never in the background.
  */
-import { choose, nearbyPlanes, spot, type AircraftSnapshot, type Match, type Observation, type SightingResult } from './engine';
+import {
+  choose,
+  nearbyPlanes,
+  spot,
+  type AircraftSnapshot,
+  type Match,
+  type Observation,
+  type RouteLookup,
+  type SightingResult,
+} from './engine';
 import { fetchNearbyAircraft } from './shell/aircraftApi';
 import { readLocationOnce } from './shell/location';
+import { createRouteClient, fetchRoutesForSighting } from './shell/routeApi';
 import { requestMotionPermission, waitForPointing, type MotionPermission } from './shell/orientation';
 import { matchedSighting, sightingLog } from './shell/sightingLog';
 import { createLogScreen } from './ui/logScreen';
@@ -38,9 +48,19 @@ const pickList = document.querySelector<HTMLUListElement>('#pick-list')!;
 const allNearbyButton = document.querySelector<HTMLButtonElement>('#all-nearby')!;
 
 /** The last Sighting's inputs, kept in memory only so the parent can open the all-nearby-planes list. */
-let lastSighting: { observation: Observation; snapshot: AircraftSnapshot } | undefined;
+let lastSighting: { observation: Observation; snapshot: AircraftSnapshot; routes: RouteLookup } | undefined;
 
 const SETUP_DONE_KEY = 'plane-goes:permissions-asked';
+
+const routeClient = createRouteClient({ storage: safeLocalStorage() });
+
+function safeLocalStorage(): Storage | null {
+  try {
+    return localStorage;
+  } catch {
+    return null;
+  }
+}
 
 const motionProblems: Record<Exclude<MotionPermission, 'granted'>, CompassProblem> = {
   denied: 'motion-denied',
@@ -97,7 +117,7 @@ function onChosen(candidate: Match): void {
 
 function showAllNearby(): void {
   if (!lastSighting) return;
-  const planes = nearbyPlanes(lastSighting.observation, lastSighting.snapshot);
+  const planes = nearbyPlanes(lastSighting.observation, lastSighting.snapshot, lastSighting.routes);
   if (planes.length === 0) {
     showPicker('No planes nearby right now.', []);
     return;
@@ -196,8 +216,9 @@ async function onSpot(): Promise<void> {
     }
 
     const observation: Observation = { ...position, ...pointing, time };
-    lastSighting = { observation, snapshot: outcome.snapshot };
-    const result = spot(observation, outcome.snapshot);
+    const routes = await fetchRoutesForSighting(observation, outcome.snapshot, routeClient);
+    lastSighting = { observation, snapshot: outcome.snapshot, routes };
+    const result = spot(observation, outcome.snapshot, routes);
     showResult(result);
     recordResult(result, outcome.snapshot);
     allNearbyButton.hidden = false;
