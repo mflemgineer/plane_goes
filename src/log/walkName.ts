@@ -44,8 +44,9 @@ function walkWhen(start: number, now: number): WalkWhen {
       : { name: `Yesterday ${part}'s walk`, phrase: `yesterday ${part}` };
   }
 
-  const sameYear = startDate.getFullYear() === nowDate.getFullYear();
-  const date = startDate.toLocaleDateString(
+  // Dated by the same day it is counted from, so a 2 a.m. Walk reads as the night before.
+  const sameYear = dayOf.getFullYear() === nowDate.getFullYear();
+  const date = dayOf.toLocaleDateString(
     'en-US',
     sameYear ? { weekday: 'long', month: 'long', day: 'numeric' } : { month: 'long', day: 'numeric', year: 'numeric' },
   );

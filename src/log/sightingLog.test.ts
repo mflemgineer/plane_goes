@@ -243,6 +243,8 @@ describe('Walks', () => {
     ['yesterday evening', new Date(2026, 9, 18, 19, 0), "Yesterday evening's walk"],
     ['an older date', new Date(2026, 9, 14, 10, 0), 'Wednesday, October 14'],
     ['a date last year', new Date(2025, 11, 30, 10, 0), 'December 30, 2025'],
+    ['the small hours of an older night, dated by the evening it began', new Date(2026, 9, 14, 2, 0), 'Tuesday, October 13'],
+    ['the small hours of New Year, dated by the night before', new Date(2026, 0, 1, 1, 30), 'December 31, 2025'],
   ])('names a Walk from %s', (_when, walkTime, name) => {
     const clock = fakeClock(walkTime);
     const log = createSightingLog({ clock, storage: memoryStorage() });
