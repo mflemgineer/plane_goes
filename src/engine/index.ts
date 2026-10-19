@@ -11,3 +11,6 @@ export type {
   SightingResult,
   SnapshotAircraft,
 } from './types';
+export type { Airport } from './airports';
+export type { GrownUpDetails } from './details';
+export type { Verdict } from './verdict';

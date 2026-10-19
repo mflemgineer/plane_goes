@@ -56,6 +56,23 @@ describe('Verdict, Kid Line and Grown-up Details', () => {
     expect(result.details).toEqual({ callsign: 'DAL412', aircraftType: 'A321', altitudeFt: 1500, minutesToLanding: 2 });
   });
 
+  it('calls a real JFK final approach an Arrival at JFK with minutes to landing', () => {
+    // Real CAL012 (B77W) at 725 ft, sinking, tracking SW onto JFK's runway 22L.
+    const result = spotOnly(real(jfkSnapshot, '899019'));
+
+    expect(result.verdict).toMatchObject({ kind: 'arrival', airport: { code: 'JFK' } });
+    expect(result.details).toEqual({ callsign: 'CAL012', aircraftType: 'B77W', altitudeFt: 725, minutesToLanding: 2 });
+  });
+
+  it('calls a real aircraft descending over Brooklyn toward LaGuardia an Arrival at LaGuardia, not JFK', () => {
+    // Real RPA4791 (E75L) at 2,625 ft over Sunset Park, sinking 1,088 ft/min on track 032°, ~10 nm from LGA.
+    const result = spotOnly(real(brooklynSnapshot, 'a026e1'));
+
+    expect(result.verdict).toMatchObject({ kind: 'arrival', airport: { code: 'LGA' } });
+    expect(result.kidLine).toBe('Coming down to LaGuardia! Bye-bye, sky! 🛬');
+    expect(result.details.minutesToLanding).toBe(3);
+  });
+
   it('calls a climbing aircraft near LaGuardia a Departure from LaGuardia', () => {
     // Just northeast of LGA, climbing out over Flushing Bay (JFK is farther away, behind it too).
     const result = spotOnly(
@@ -99,6 +116,33 @@ describe('Verdict, Kid Line and Grown-up Details', () => {
     expect(result.verdict).toEqual({ kind: 'unknown' });
   });
 
+  it('calls a rotorcraft a helicopter', () => {
+    // Real N217MH (Bell 206, category A7) low over the harbor.
+    const result = spotOnly(real(brooklynSnapshot, 'a1d49e'));
+
+    expect(result.verdict).toEqual({ kind: 'helicopter' });
+    expect(result.kidLine).toBe('A helicopter! Whirr whirr! 🚁');
+    expect(result.details).toEqual({ callsign: 'N217MH', aircraftType: 'B06', altitudeFt: 250 });
+  });
+
+  it('calls a rotorcraft a helicopter even when it is descending toward an airport', () => {
+    const result = spotOnly(
+      aircraft({ flight: 'N401FN  ', category: 'A7', lat: 40.62, lon: -73.86, alt_baro: 900, gs: 90, track: 72, baro_rate: -640 }),
+    );
+
+    expect(result.verdict).toEqual({ kind: 'helicopter' });
+    expect(result.details).toEqual({ callsign: 'N401FN', altitudeFt: 900 });
+  });
+
+  it('calls a light aircraft with no route a small plane', () => {
+    // Real N4431R (Cessna 172, category A1) over the Lower Bay.
+    const result = spotOnly(real(brooklynSnapshot, 'a5584d'));
+
+    expect(result.verdict).toEqual({ kind: 'small-plane' });
+    expect(result.kidLine).toBe('A little plane! Putt-putt-putt! 🛩️');
+    expect(result.details).toEqual({ callsign: 'N4431R', aircraftType: 'C172', altitudeFt: 500 });
+  });
+
   it('does not force a bizjet descending toward Teterboro into a Home Airport Arrival', () => {
     // Real N807LP (C680): 700 ft, sinking 576 ft/min, tracking NE toward Teterboro.
     const result = spotOnly(real(brooklynSnapshot, 'aafce6'));
@@ -113,5 +157,14 @@ describe('Verdict, Kid Line and Grown-up Details', () => {
 
     expect(result.verdict).toEqual({ kind: 'unknown' });
     expect(result.details).toEqual({ callsign: 'JBU699', aircraftType: 'A320' });
+  });
+
+  it('gives a Mystery Plane the Amelia Earhart Kid Line', () => {
+    const result = spot({ ...brooklyn, heading: 120, elevation: 30, time: NOW }, { ac: [], now: NOW });
+
+    expect(result).toEqual({
+      kind: 'mystery',
+      kidLine: 'Looks like Amelia Earhart is flying that one! We could not find it.',
+    });
   });
 });

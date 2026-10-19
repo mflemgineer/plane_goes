@@ -22,7 +22,7 @@ describe('Sighting Engine', () => {
   it('returns a Mystery Plane when the sky is empty', () => {
     const result = spot(brooklyn, { ac: [], now: brooklyn.time });
 
-    expect(result).toEqual({ kind: 'mystery' });
+    expect(result.kind).toBe('mystery');
   });
 
   it('measures distance from where the parent stands, not from the query point', () => {

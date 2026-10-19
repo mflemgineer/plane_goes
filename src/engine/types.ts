@@ -55,4 +55,4 @@ export interface Flight {
 
 export type SightingResult =
   | ({ kind: 'matched'; flight: Flight } & AircraftDescription)
-  | { kind: 'mystery' };
+  | { kind: 'mystery'; kidLine: string };

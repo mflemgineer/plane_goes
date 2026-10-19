@@ -30,10 +30,17 @@ export const OVERFLIGHT_MIN_ALTITUDE_FT = 18_000;
 /** …and holding level: vertical rate within ± this (ft/min). */
 export const LEVEL_MAX_RATE_FPM = 500;
 
+/** ADS-B emitter category for rotorcraft → helicopter. */
+export const ROTORCRAFT_CATEGORIES: readonly string[] = ['A7'];
+/** ADS-B emitter categories for light aircraft → small plane (until a route says otherwise). */
+export const LIGHT_AIRCRAFT_CATEGORIES: readonly string[] = ['A1'];
+
 export type Verdict =
   | { kind: 'arrival'; airport: Airport; distanceNm: number }
   | { kind: 'departure'; airport: Airport; distanceNm: number }
   | { kind: 'overflight' }
+  | { kind: 'helicopter' }
+  | { kind: 'small-plane' }
   | { kind: 'unknown' };
 
 const UNKNOWN: Verdict = { kind: 'unknown' };
@@ -66,6 +73,9 @@ function angleBetween(a: number, b: number): number {
 }
 
 export function judgeVerdict(ac: SnapshotAircraft): Verdict {
+  if (ac.category && ROTORCRAFT_CATEGORIES.includes(ac.category)) return { kind: 'helicopter' };
+  if (ac.category && LIGHT_AIRCRAFT_CATEGORIES.includes(ac.category)) return { kind: 'small-plane' };
+
   const { lat, lon, track } = ac;
   const altitude = typeof ac.alt_baro === 'number' ? ac.alt_baro : undefined;
   const rate = ac.baro_rate ?? ac.geom_rate;

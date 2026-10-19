@@ -5,6 +5,7 @@
 import { spot } from './engine';
 import { fetchNearbyAircraft } from './shell/aircraftApi';
 import { readLocationOnce, type LocationError } from './shell/location';
+import { renderGrownUpDetails } from './ui/grownUpDetails';
 
 const kidLine = document.querySelector<HTMLParagraphElement>('#kid-line')!;
 const details = document.querySelector<HTMLParagraphElement>('#details')!;
@@ -47,11 +48,8 @@ async function onSpot(): Promise<void> {
     }
 
     const result = spot({ ...position, time: Date.now() }, outcome.snapshot);
-    if (result.kind === 'matched') {
-      show(`${result.flight.callsign} ✈️`, `${result.flight.distanceNm.toFixed(1)} nm away`);
-    } else {
-      show('Looks like Amelia Earhart is flying that one! We could not find it.');
-    }
+    show(result.kidLine);
+    if (result.kind === 'matched') renderGrownUpDetails(details, result.details);
   } finally {
     button.disabled = false;
   }

@@ -1,4 +1,5 @@
 import { describeAircraft } from './describeAircraft';
+import { MYSTERY_PLANE_KID_LINE } from './kidLine';
 import type { AircraftSnapshot, Observation, SightingResult, SnapshotAircraft } from './types';
 
 const EARTH_RADIUS_NM = 3440.065;
@@ -31,6 +32,6 @@ export function spot(observation: Observation, snapshot: AircraftSnapshot): Sigh
     }
   }
 
-  if (!best || !bestAircraft) return { kind: 'mystery' };
+  if (!best || !bestAircraft) return { kind: 'mystery', kidLine: MYSTERY_PLANE_KID_LINE };
   return { kind: 'matched', flight: best, ...describeAircraft(bestAircraft) };
 }
