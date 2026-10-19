@@ -85,6 +85,12 @@ export function createSightingLog({ clock, storage, newId = defaultId }: Sightin
     storage.setItem(SIGHTINGS_KEY, JSON.stringify(sightings));
   }
 
+  function add(input: SightingInput, time: number): StoredSighting {
+    const sighting = buildRecord(newId(), storage.getItem(SPOTTER_KEY) ?? '', time, input);
+    save([...load(), sighting]);
+    return sighting;
+  }
+
   const log = {
     getSpotterName(): string | null {
       return storage.getItem(SPOTTER_KEY);
@@ -96,9 +102,7 @@ export function createSightingLog({ clock, storage, newId = defaultId }: Sightin
 
     /** Saves a Sighting, credited to the current Spotter, at the clock's current time. */
     addSighting(input: SightingInput): StoredSighting {
-      const sighting = buildRecord(newId(), storage.getItem(SPOTTER_KEY) ?? '', clock.now(), input);
-      save([...load(), sighting]);
-      return sighting;
+      return add(input, clock.now());
     },
 
     /**
@@ -116,9 +120,12 @@ export function createSightingLog({ clock, storage, newId = defaultId }: Sightin
       return corrected;
     },
 
-    /** An Ambiguous result the parent dismissed without choosing still counts: it is saved as a Mystery Plane. */
-    addDismissedAmbiguous(): StoredSighting {
-      return log.addSighting({ verdict: { kind: 'mystery' }, kidLine: MYSTERY_KID_LINE });
+    /**
+     * An Ambiguous result the parent dismissed without choosing still counts: it is saved as a
+     * Mystery Plane, dated `spottedAt` (the Spot tap, ms since epoch) so it lands on the right Walk.
+     */
+    addDismissedAmbiguous(spottedAt: number): StoredSighting {
+      return add({ verdict: { kind: 'mystery' }, kidLine: MYSTERY_KID_LINE }, spottedAt);
     },
 
     /** Removes one Sighting. Does nothing if it is no longer kept. */

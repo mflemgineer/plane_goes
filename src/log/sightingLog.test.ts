@@ -55,13 +55,28 @@ describe('Spotter', () => {
     const clock = fakeClock(new Date(2026, 9, 19, 9, 0));
     const log = createSightingLog({ clock, storage: memoryStorage() });
     log.setSpotterName('Davey');
-    log.addDismissedAmbiguous();
+    log.addDismissedAmbiguous(clock.now());
 
     const [sighting] = log.listWalks()[0].sightings;
     expect(sighting.spotter).toBe('Davey');
     expect(sighting.verdict.kind).toBe('mystery');
     expect(sighting.kidLine).toBe('Looks like Amelia Earhart is flying that one! We could not find it.');
     expect(sighting.aircraft).toBeUndefined();
+  });
+
+  it('dates a dismissed Ambiguous result at the Spot tap, not when it was dismissed', () => {
+    const clock = fakeClock(new Date(2026, 9, 19, 9, 0));
+    const log = createSightingLog({ clock, storage: memoryStorage() });
+    log.addSighting(jfkArrival);
+    clock.advanceMinutes(30);
+    const tappedAt = clock.now();
+    // The list sat on screen while the family walked on; it was dismissed 45 minutes later.
+    clock.advanceMinutes(45);
+    log.addDismissedAmbiguous(tappedAt);
+
+    const walks = log.listWalks();
+    expect(walks).toHaveLength(1);
+    expect(walks[0].sightings[1].time).toBe(new Date(2026, 9, 19, 9, 30).getTime());
   });
 });
 
@@ -285,7 +300,7 @@ describe('Walk summaries', () => {
     const log = createSightingLog({ clock, storage: memoryStorage() });
     log.addSighting(mysteryPlane);
     clock.advanceMinutes(2);
-    log.addDismissedAmbiguous();
+    log.addDismissedAmbiguous(clock.now());
 
     const [walk] = log.listWalks();
     expect(walk.planeCount).toBe(2);

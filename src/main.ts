@@ -112,7 +112,7 @@ function showResult(result: SightingResult): void {
 function onChosen(candidate: Match): void {
   const result = choose(candidate);
   showResult(result);
-  if (lastSighting) recordResult(result, lastSighting.snapshot, true);
+  if (lastSighting) recordResult(result, lastSighting.snapshot, lastSighting.observation.time, true);
 }
 
 function showAllNearby(): void {
@@ -220,7 +220,7 @@ async function onSpot(): Promise<void> {
     lastSighting = { observation, snapshot: outcome.snapshot, routes };
     const result = spot(observation, outcome.snapshot, routes);
     showResult(result);
-    recordResult(result, outcome.snapshot);
+    recordResult(result, outcome.snapshot, time);
     allNearbyButton.hidden = false;
   } catch (reason) {
     // Never show a raw error to the Spotter.
@@ -237,7 +237,8 @@ async function onSpot(): Promise<void> {
  * (spot again, open the Log, leave the app), it is saved as a Mystery Plane.
  */
 let savedSightingId: string | undefined;
-let ambiguousPending = false;
+/** The Spot tap time of an Ambiguous result still waiting for the parent to choose. */
+let ambiguousPendingAt: number | undefined;
 
 function saveSighting(save: () => { id: string }): void {
   try {
@@ -248,13 +249,13 @@ function saveSighting(save: () => { id: string }): void {
 }
 
 /** Saves the result of a Spot tap, or of a plane chosen from a list (`chosen`). */
-function recordResult(result: SightingResult, snapshot: AircraftSnapshot, chosen = false): void {
+function recordResult(result: SightingResult, snapshot: AircraftSnapshot, tappedAt: number, chosen = false): void {
   if (result.kind === 'ambiguous') {
-    ambiguousPending = true;
+    ambiguousPendingAt = tappedAt;
     savedSightingId = undefined;
     return;
   }
-  ambiguousPending = false;
+  ambiguousPendingAt = undefined;
   const input =
     result.kind === 'matched'
       ? matchedSighting(result, snapshot)
@@ -266,9 +267,10 @@ function recordResult(result: SightingResult, snapshot: AircraftSnapshot, chosen
 
 /** The parent moved on from an Ambiguous list without choosing: it still counts, as a Mystery Plane. */
 function settleAmbiguous(): void {
-  if (!ambiguousPending) return;
-  ambiguousPending = false;
-  saveSighting(() => sightingLog.addDismissedAmbiguous());
+  if (ambiguousPendingAt === undefined) return;
+  const tappedAt = ambiguousPendingAt;
+  ambiguousPendingAt = undefined;
+  saveSighting(() => sightingLog.addDismissedAmbiguous(tappedAt));
 }
 
 /** The screen to show once the Spotter has a name. */
