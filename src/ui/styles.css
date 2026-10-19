@@ -1,0 +1,68 @@
+:root {
+  --sky: #7fc8f8;
+  --ink: #102a43;
+  --button: #ff6b35;
+  --button-ink: #ffffff;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--sky);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--sky);
+}
+
+main {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: max(1.5rem, env(safe-area-inset-top)) 16px max(1.5rem, env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.kid-line {
+  margin: 2rem 0 0;
+  font-size: clamp(2rem, 9vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.details {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  min-height: 1.5em;
+}
+
+.spot-button {
+  width: min(80vw, 20rem);
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 50%;
+  background: var(--button);
+  color: var(--button-ink);
+  font-size: 3rem;
+  font-weight: 900;
+  box-shadow: 0 0.5rem 0 rgba(0, 0, 0, 0.2);
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.spot-button:active {
+  transform: translateY(0.25rem);
+  box-shadow: 0 0.25rem 0 rgba(0, 0, 0, 0.2);
+}
+
+.spot-button:disabled {
+  opacity: 0.6;
+}
