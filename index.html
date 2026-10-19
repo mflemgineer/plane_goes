@@ -39,6 +39,14 @@
       </div>
       <p id="log-title" class="log-title">Sighting Log 📒</p>
       <ul id="walks" class="walks"></ul>
+      <div class="log-clear">
+        <button id="clear-log" class="text-button" type="button">Clear the whole log</button>
+        <div id="clear-confirm" class="clear-confirm" role="alertdialog" aria-labelledby="clear-question" hidden>
+          <p id="clear-question">Clear every Walk and Sighting? This can't be undone.</p>
+          <button id="clear-yes" class="allow-button danger" type="button">Yes, clear it</button>
+          <button id="clear-no" class="text-button" type="button">Keep them</button>
+        </div>
+      </div>
     </section>
     <section id="permissions" class="permissions" hidden>
       <p class="kid-line">Let's find planes! ✈️</p>

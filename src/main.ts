@@ -7,7 +7,7 @@ import { fetchNearbyAircraft } from './shell/aircraftApi';
 import { readLocationOnce } from './shell/location';
 import { requestMotionPermission, waitForPointing, type MotionPermission } from './shell/orientation';
 import { matchedSighting, sightingLog } from './shell/sightingLog';
-import { renderWalks } from './ui/logScreen';
+import { createLogScreen } from './ui/logScreen';
 import { createVoice } from './shell/voice';
 import { setUpAbout } from './ui/about';
 import { friendlyMessage, type CompassProblem } from './ui/friendlyMessage';
@@ -25,7 +25,13 @@ const spotterForm = document.querySelector<HTMLFormElement>('#spotter-form')!;
 const spotterInput = document.querySelector<HTMLInputElement>('#spotter-name')!;
 const spotterCancel = document.querySelector<HTMLButtonElement>('#spotter-cancel')!;
 const logScreen = document.querySelector<HTMLElement>('#log')!;
-const walksList = document.querySelector<HTMLUListElement>('#walks')!;
+const logView = createLogScreen(sightingLog, {
+  list: document.querySelector<HTMLUListElement>('#walks')!,
+  clearButton: document.querySelector<HTMLButtonElement>('#clear-log')!,
+  clearConfirm: document.querySelector<HTMLElement>('#clear-confirm')!,
+  clearYes: document.querySelector<HTMLButtonElement>('#clear-yes')!,
+  clearNo: document.querySelector<HTMLButtonElement>('#clear-no')!,
+});
 const pick = document.querySelector<HTMLElement>('#pick')!;
 const pickTitle = document.querySelector<HTMLParagraphElement>('#pick-title')!;
 const pickList = document.querySelector<HTMLUListElement>('#pick-list')!;
@@ -273,13 +279,7 @@ function onSpotterSaved(event: SubmitEvent): void {
 
 function openLog(): void {
   settleAmbiguous();
-  let walks: ReturnType<typeof sightingLog.listWalks> = [];
-  try {
-    walks = sightingLog.listWalks();
-  } catch {
-    // Unreadable storage: show an empty log.
-  }
-  renderWalks(walksList, walks, sightingLog.getSpotterName());
+  logView.render();
   showScreen('log');
 }
 
