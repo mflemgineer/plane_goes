@@ -335,7 +335,12 @@ renderVoiceControls();
 allowButton.addEventListener('click', () => void onAllow());
 button.addEventListener('click', () => void onSpot());
 allNearbyButton.addEventListener('click', showAllNearby);
+// iPhone home-screen apps often skip `pagehide`, so going to the background settles it too.
+// Settling is idempotent; choosing after coming back corrects the saved Mystery Plane.
 window.addEventListener('pagehide', settleAmbiguous);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') settleAmbiguous();
+});
 setUpAbout();
 if (sightingLog.getSpotterName() === null) openSpotterPrompt(false);
 else showScreen(homeScreen());
