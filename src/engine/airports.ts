@@ -10,7 +10,7 @@ export interface Airport {
   name: string;
   lat: number;
   lon: number;
-  /** Home Airports are judged from motion alone; Other Nearby Airports also need a matching route (later ticket). */
+  /** Home Airports can be named from motion alone; Other Nearby Airports only with a matching route. */
   group: 'home' | 'other-nearby';
 }
 
