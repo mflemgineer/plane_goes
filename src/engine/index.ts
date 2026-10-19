@@ -6,6 +6,7 @@
 export { choose, nearbyPlanes, spot } from './spot';
 export { altitudeFt } from './altitude';
 export { MYSTERY_PLANE_KID_LINE } from './kidLine';
+export { airportByCode } from './airports';
 export type {
   AircraftSnapshot,
   Flight,

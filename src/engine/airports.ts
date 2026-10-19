@@ -24,3 +24,8 @@ export const AIRPORTS: readonly Airport[] = [
 ];
 
 export const HOME_AIRPORTS: readonly Airport[] = AIRPORTS.filter((a) => a.group === 'home');
+
+/** The known airport with this IATA code, if any. */
+export function airportByCode(code: string): Airport | undefined {
+  return AIRPORTS.find((a) => a.code === code);
+}

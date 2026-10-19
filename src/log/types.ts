@@ -3,15 +3,10 @@
  * Vocabulary follows GLOSSARY.md.
  */
 
+import type { Verdict } from '../engine';
+
 /** A Verdict kind, plus Mystery Plane for Sightings where no Flight was matched. */
-export type VerdictKind =
-  | 'arrival'
-  | 'departure'
-  | 'overflight'
-  | 'helicopter'
-  | 'small-plane'
-  | 'unknown'
-  | 'mystery';
+export type VerdictKind = Verdict['kind'] | 'mystery';
 
 export interface LoggedVerdict {
   kind: VerdictKind;

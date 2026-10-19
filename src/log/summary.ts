@@ -2,7 +2,7 @@
  * Walk counts and summaries, e.g.
  * "5 planes — 2 JFK Arrivals, 1 LaGuardia Departure, 1 Overflight to London, 1 Mystery Plane".
  */
-import { AIRPORTS } from '../engine/airports';
+import { airportByCode } from '../engine';
 import type { StoredSighting, VerdictKind } from './types';
 
 /**
@@ -37,7 +37,7 @@ const KIND_NOUN: Record<VerdictKind, [string, string]> = {
 };
 
 function airportName(code: string): string {
-  return AIRPORTS.find((a) => a.code === code)?.name ?? code;
+  return airportByCode(code)?.name ?? code;
 }
 
 /** What a plane is grouped under: its Verdict kind plus, where it helps, the airport or Overflight destination. */
