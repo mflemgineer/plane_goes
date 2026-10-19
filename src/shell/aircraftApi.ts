@@ -9,11 +9,17 @@ export type FetchAircraftOutcome =
 /** A walk with one bar of signal shouldn't leave the button spinning forever. */
 const DEFAULT_TIMEOUT_MS = 12000;
 
+/**
+ * 2 dp (~1 km), as the proxy rounds too: the edge cache is keyed on the URL, so nearby taps
+ * must send the same one to share a cached snapshot.
+ */
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
 export async function fetchNearbyAircraft(
   position: Position,
   { timeoutMs = DEFAULT_TIMEOUT_MS }: { timeoutMs?: number } = {},
 ): Promise<FetchAircraftOutcome> {
-  const url = `/api/aircraft?lat=${position.lat}&lon=${position.lon}`;
+  const url = `/api/aircraft?lat=${round2(position.lat)}&lon=${round2(position.lon)}`;
   let response: Response;
   try {
     response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });

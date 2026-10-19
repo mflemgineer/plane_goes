@@ -43,4 +43,11 @@ describe('fetchNearbyAircraft', () => {
     respondWith(async () => new Response(JSON.stringify({ ac: [], now: 1, total: 0 }), { status: 200 }));
     expect(await fetchNearbyAircraft(here)).toMatchObject({ ok: true, snapshot: { ac: [] } });
   });
+
+  it('asks the proxy for the position rounded to 2 dp, so nearby taps share one edge-cached answer', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ac: [] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await fetchNearbyAircraft({ lat: 40.687654, lon: -73.975412 });
+    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toBe('/api/aircraft?lat=40.69&lon=-73.98');
+  });
 });
