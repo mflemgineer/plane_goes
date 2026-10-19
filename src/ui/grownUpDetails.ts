@@ -1,10 +1,11 @@
 /** Renders Grown-up Details as short lines under the Kid Line. */
+import { placeText } from './place';
 import type { GrownUpDetails } from '../engine';
 
 export function grownUpDetailLines(details: GrownUpDetails): string[] {
   const lines = [details.airline ? `${details.airline} · Flight ${details.callsign}` : `Flight ${details.callsign}`];
-  if (details.origin) lines.push(`From ${details.origin}`);
-  if (details.destination) lines.push(`To ${details.destination}`);
+  if (details.origin) lines.push(`From ${placeText(details.origin)}`);
+  if (details.destination) lines.push(`To ${placeText(details.destination)}`);
   if (details.aircraftType) lines.push(`Aircraft ${details.aircraftType}`);
   if (details.altitudeFt !== undefined) lines.push(`${details.altitudeFt.toLocaleString('en-US')} ft`);
   if (details.minutesToLanding !== undefined) {

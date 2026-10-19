@@ -3,6 +3,7 @@
  * opens it to show each Sighting's Kid Line, time and Grown-up Details, with a delete button.
  * Clearing the whole log asks for confirmation first.
  */
+import { placeText } from './place';
 import type { SightingLog, StoredSighting, Walk } from '../log';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string): HTMLElementTagNameMap[K] {
@@ -20,8 +21,8 @@ export function savedDetailLines(sighting: StoredSighting): string[] {
   const flight = `Flight ${ac.callsign ?? ac.hex}`;
   lines.push(ac.airline ? `${ac.airline} · ${flight}` : flight);
   if (ac.aircraftType) lines.push(`Aircraft ${ac.aircraftType}`);
-  if (ac.origin) lines.push(`From ${ac.origin}`);
-  if (ac.destination) lines.push(`To ${ac.destination}`);
+  if (ac.origin) lines.push(`From ${placeText(ac.origin)}`);
+  if (ac.destination) lines.push(`To ${placeText(ac.destination)}`);
   if (ac.altitudeFt !== undefined) lines.push(`${ac.altitudeFt.toLocaleString('en-US')} ft`);
   if (ac.minutesToLanding !== undefined) {
     lines.push(ac.minutesToLanding < 1 ? 'Was about to land' : `Was about ${ac.minutesToLanding} min from landing`);

@@ -3,7 +3,7 @@
  * "5 planes — 2 JFK Arrivals, 1 LaGuardia Departure, 1 Overflight to London, 1 Mystery Plane".
  */
 import { airportByCode } from '../engine';
-import type { StoredSighting, VerdictKind } from './types';
+import type { StoredAircraft, StoredSighting, VerdictKind } from './types';
 
 /**
  * The planes a Walk counts: repeat Sightings of the same Flight (ICAO hex) count once, using the
@@ -40,12 +40,17 @@ function airportName(code: string): string {
   return airportByCode(code)?.name ?? code;
 }
 
+/** The city of a stored place; records before format 3 hold "London (LHR)", which reads as "London". */
+function cityOf(place: StoredAircraft['destination']): string | undefined {
+  if (typeof place === 'string') return place.replace(/\s*\([^)]*\)\s*$/, '') || undefined;
+  return place?.city;
+}
+
 /** What a plane is grouped under: its Verdict kind plus, where it helps, the airport or Overflight destination. */
 function groupOf(plane: StoredSighting): { kind: VerdictKind; prefix?: string; suffix?: string } {
   const { kind, airports } = plane.verdict;
   if ((kind === 'arrival' || kind === 'departure') && airports?.length) return { kind, prefix: airportName(airports[0]) };
-  // "London (LHR)" reads as "London" in a summary.
-  const destination = plane.aircraft?.destination?.replace(/\s*\([^)]*\)\s*$/, '');
+  const destination = cityOf(plane.aircraft?.destination);
   if (kind === 'overflight' && destination) return { kind, suffix: `to ${destination}` };
   return { kind };
 }

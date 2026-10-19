@@ -75,8 +75,8 @@ describe('Routes: city names, airline and Other Nearby Airports', () => {
       callsign: 'DAL412',
       airline: 'Delta Air Lines',
       aircraftType: 'A321',
-      origin: 'Boston (BOS)',
-      destination: 'New York (JFK)',
+      origin: { code: 'BOS', city: 'Boston' },
+      destination: { code: 'JFK', city: 'New York' },
       altitudeFt: 1500,
       minutesToLanding: 2,
     });
@@ -93,8 +93,8 @@ describe('Routes: city names, airline and Other Nearby Airports', () => {
       callsign: 'JBU1601',
       airline: 'JetBlue Airways',
       aircraftType: 'A320',
-      origin: 'Boston (BOS)',
-      destination: 'Miami (MIA)',
+      origin: { code: 'BOS', city: 'Boston' },
+      destination: { code: 'MIA', city: 'Miami' },
       altitudeFt: 35000,
     });
   });
@@ -130,7 +130,7 @@ describe('Routes: city names, airline and Other Nearby Airports', () => {
 
     expect(result.verdict).toMatchObject({ kind: 'departure', airport: { code: 'LGA' }, destination: { city: 'Miami' } });
     expect(result.kidLine).toBe('Going up from LaGuardia to Miami! Up, up, up! 🛫');
-    expect(result.details).toMatchObject({ origin: 'New York (LGA)', destination: 'Miami (MIA)' });
+    expect(result.details).toMatchObject({ origin: { code: 'LGA', city: 'New York' }, destination: { code: 'MIA', city: 'Miami' } });
   });
 
   it('calls a bizjet descending toward Teterboro with a matching route an Arrival at Teterboro', () => {
@@ -140,7 +140,7 @@ describe('Routes: city names, airline and Other Nearby Airports', () => {
 
     expect(result.verdict).toMatchObject({ kind: 'arrival', airport: { code: 'TEB', name: 'Teterboro' }, origin: { city: 'West Palm Beach' } });
     expect(result.kidLine).toBe('Coming down to Teterboro from West Palm Beach! Bye-bye, sky! 🛬');
-    expect(result.details).toMatchObject({ origin: 'West Palm Beach (PBI)', destination: 'Teterboro (TEB)' });
+    expect(result.details).toMatchObject({ origin: { code: 'PBI', city: 'West Palm Beach' }, destination: { code: 'TEB', city: 'Teterboro' } });
   });
 
   it('does not let a route name Teterboro when the motion points at JFK', () => {

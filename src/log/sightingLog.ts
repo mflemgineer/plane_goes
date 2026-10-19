@@ -3,6 +3,7 @@ import type { LogStorage } from './storage';
 import {
   SIGHTING_FORMAT_VERSION,
   type LoggedAircraft,
+  type LoggedPlace,
   type LoggedVerdict,
   type SightingInput, type StoredSighting, type Walk } from './types';
 import { distinctPlanes, walkCredit, walkSummary } from './summary';
@@ -37,13 +38,17 @@ function pickVerdict(verdict: LoggedVerdict): LoggedVerdict {
   return picked;
 }
 
+function pickPlace({ code, city }: LoggedPlace): LoggedPlace {
+  return { code: String(code), city: String(city) };
+}
+
 function pickAircraft(aircraft: LoggedAircraft): LoggedAircraft {
   const picked: LoggedAircraft = { hex: aircraft.hex };
   if (aircraft.callsign) picked.callsign = aircraft.callsign;
   if (aircraft.airline) picked.airline = aircraft.airline;
   if (aircraft.aircraftType) picked.aircraftType = aircraft.aircraftType;
-  if (aircraft.origin) picked.origin = aircraft.origin;
-  if (aircraft.destination) picked.destination = aircraft.destination;
+  if (aircraft.origin) picked.origin = pickPlace(aircraft.origin);
+  if (aircraft.destination) picked.destination = pickPlace(aircraft.destination);
   if (aircraft.position) picked.position = { lat: aircraft.position.lat, lon: aircraft.position.lon };
   if (typeof aircraft.altitudeFt === 'number') picked.altitudeFt = aircraft.altitudeFt;
   if (typeof aircraft.minutesToLanding === 'number') picked.minutesToLanding = aircraft.minutesToLanding;

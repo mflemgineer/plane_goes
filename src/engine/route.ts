@@ -42,7 +42,9 @@ export function inNewYorkArea(end: LatLon): boolean {
   return AIRPORTS.some((airport) => distanceNm(end, airport) <= NY_AREA_RADIUS_NM);
 }
 
-/** "Boston (BOS)" for the Grown-up Details. */
-export function describeEnd(end: RouteAirport): string {
-  return `${end.city} (${end.code})`;
+/** A route end as the Grown-up Details name it: code and city, without coordinates. */
+export type RoutePlace = Pick<RouteAirport, 'code' | 'city'>;
+
+export function placeOf({ code, city }: RouteAirport): RoutePlace {
+  return { code, city };
 }

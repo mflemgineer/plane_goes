@@ -8,8 +8,10 @@ export type { Clock, SightingLog, SightingLogDeps } from './sightingLog';
 export { SIGHTING_FORMAT_VERSION } from './types';
 export type {
   LoggedAircraft,
+  LoggedPlace,
   LoggedVerdict,
   SightingInput,
+  StoredAircraft,
   StoredSighting,
   VerdictKind,
   Walk,

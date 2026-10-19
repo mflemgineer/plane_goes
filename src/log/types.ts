@@ -14,6 +14,14 @@ export interface LoggedVerdict {
   airports?: string[];
 }
 
+/** One end of a Flight's route, e.g. { code: 'LHR', city: 'London' }. */
+export interface LoggedPlace {
+  /** IATA code when known, else ICAO. */
+  code: string;
+  /** City (or short airport name) to say out loud. */
+  city: string;
+}
+
 /** The plane (never the observer) at the moment of a matched Sighting. */
 export interface LoggedAircraft {
   /** ICAO 24-bit address */
@@ -23,10 +31,10 @@ export interface LoggedAircraft {
   airline?: string;
   /** ICAO type designator, e.g. "B738", when known (Grown-up Details). */
   aircraftType?: string;
-  /** Origin when known (city or airport code). */
-  origin?: string;
-  /** Destination when known (city or airport code). */
-  destination?: string;
+  /** Origin, when the route fitted the motion. */
+  origin?: LoggedPlace;
+  /** Destination, when the route fitted the motion. */
+  destination?: LoggedPlace;
   /** The plane's position at the time of the Sighting. */
   position?: { lat: number; lon: number };
   /** The plane's altitude in feet at the time of the Sighting. */
@@ -46,9 +54,17 @@ export interface SightingInput {
 /**
  * Bumped whenever the stored Sighting shape changes.
  * 1: first shape. 2: adds optional airline, aircraftType and minutesToLanding to the aircraft
- * (additive, so version 1 records still read as they are).
+ * (additive, so version 1 records still read as they are). 3: origin and destination are
+ * { code, city } instead of a display string like "London (LHR)"; older records keep their
+ * strings and still read.
  */
-export const SIGHTING_FORMAT_VERSION = 2;
+export const SIGHTING_FORMAT_VERSION = 3;
+
+/** The plane as kept on the phone: as logged, except records before version 3 hold places as display strings. */
+export interface StoredAircraft extends Omit<LoggedAircraft, 'origin' | 'destination'> {
+  origin?: LoggedPlace | string;
+  destination?: LoggedPlace | string;
+}
 
 /** One Sighting as it is kept on the phone. */
 export interface StoredSighting {
@@ -61,7 +77,7 @@ export interface StoredSighting {
   time: number;
   verdict: LoggedVerdict;
   kidLine: string;
-  aircraft?: LoggedAircraft;
+  aircraft?: StoredAircraft;
 }
 
 /** A group of Sightings made on the same outing. */

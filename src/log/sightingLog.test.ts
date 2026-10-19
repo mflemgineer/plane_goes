@@ -86,8 +86,8 @@ const jfkArrival: SightingInput = {
   aircraft: {
     hex: 'a1b2c3',
     callsign: 'DAL1636',
-    origin: 'Atlanta',
-    destination: 'JFK',
+    origin: { code: 'ATL', city: 'Atlanta' },
+    destination: { code: 'JFK', city: 'New York' },
     position: { lat: 40.62, lon: -73.86 },
     altitudeFt: 2400,
   },
@@ -140,7 +140,7 @@ describe('Stored Sightings', () => {
 
     const reloaded = createSightingLog({ clock, storage }).listWalks()[0].sightings;
     expect(reloaded.map((s) => s.id)).toEqual(ids);
-    expect(reloaded.map((s) => s.formatVersion)).toEqual([2, 2, 2]);
+    expect(reloaded.map((s) => s.formatVersion)).toEqual([3, 3, 3]);
     expect(reloaded[0].time).toBe(new Date(2026, 9, 19, 9, 0).getTime());
   });
 
@@ -183,14 +183,14 @@ describe('Stored Sightings', () => {
     createSightingLog({ clock, storage }).addSighting(withDetails);
 
     const [sighting] = createSightingLog({ clock, storage }).listWalks()[0].sightings;
-    expect(sighting.formatVersion).toBe(2);
+    expect(sighting.formatVersion).toBe(3);
     expect(sighting.aircraft).toEqual({
       hex: 'a1b2c3',
       callsign: 'DAL1636',
       airline: 'Delta Air Lines',
       aircraftType: 'B739',
-      origin: 'Atlanta',
-      destination: 'JFK',
+      origin: { code: 'ATL', city: 'Atlanta' },
+      destination: { code: 'JFK', city: 'New York' },
       position: { lat: 40.62, lon: -73.86 },
       altitudeFt: 2400,
       minutesToLanding: 6,
@@ -267,11 +267,17 @@ const lgaDeparture: SightingInput = {
   aircraft: { hex: 'b2c3d4', callsign: 'RPA4791', position: { lat: 40.79, lon: -73.88 }, altitudeFt: 3100 },
 };
 
-function overflight(hex: string, destination?: string): SightingInput {
+function overflight(hex: string, destinationCity?: string): SightingInput {
   return {
     verdict: { kind: 'overflight' },
     kidLine: 'Flying far, far away! 🌍',
-    aircraft: { hex, callsign: `BAW${hex.slice(0, 3)}`, origin: 'Boston', destination, altitudeFt: 36000 },
+    aircraft: {
+      hex,
+      callsign: `BAW${hex.slice(0, 3)}`,
+      origin: { code: 'BOS', city: 'Boston' },
+      destination: destinationCity ? { code: 'LHR', city: destinationCity } : undefined,
+      altitudeFt: 36000,
+    },
   };
 }
 
@@ -334,12 +340,27 @@ describe('Walk summaries', () => {
   });
 });
 
-it('names an Overflight by its destination city, without the airport code', () => {
+it('still reads Sightings saved with display-string places by earlier versions', () => {
+  const storage = memoryStorage();
   const clock = fakeClock(new Date(2026, 9, 19, 9, 0));
-  const log = createSightingLog({ clock, storage: memoryStorage() });
-  log.addSighting(overflight('c0ffee', 'London (LHR)'));
+  const saved = {
+    id: 'old-1',
+    formatVersion: 2,
+    spotter: 'Davey',
+    time: clock.now(),
+    verdict: { kind: 'overflight' },
+    kidLine: 'Flying far, far away! 🌍',
+    aircraft: { hex: 'c0ffee', origin: 'Boston (BOS)', destination: 'London (LHR)' },
+  };
+  storage.setItem('plane-goes:sightings', JSON.stringify([saved]));
+  const log = createSightingLog({ clock, storage });
+  clock.advanceMinutes(5);
   log.addSighting(overflight('c0ffef', 'London'));
-  expect(log.listWalks()[0].summary).toBe('2 planes — 2 Overflights to London');
+
+  const [walk] = log.listWalks();
+  expect(walk.summary).toBe('2 planes — 2 Overflights to London');
+  expect(walk.sightings[0].aircraft?.destination).toBe('London (LHR)');
+  expect(walk.sightings[1].aircraft?.destination).toEqual({ code: 'LHR', city: 'London' });
 });
 
 describe('Spotter credit', () => {

@@ -16,6 +16,6 @@ export type {
   SnapshotAircraft,
 } from './types';
 export type { Airport } from './airports';
-export type { Route, RouteAirport, RouteLookup } from './route';
+export type { Route, RouteAirport, RouteLookup, RoutePlace } from './route';
 export type { GrownUpDetails } from './details';
 export type { Verdict } from './verdict';
