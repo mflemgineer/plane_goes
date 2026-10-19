@@ -4,8 +4,10 @@
  */
 import { spot } from './engine';
 import { fetchNearbyAircraft } from './shell/aircraftApi';
-import { readLocationOnce, type LocationError } from './shell/location';
+import { readLocationOnce } from './shell/location';
 import { requestMotionPermission, waitForPointing, type MotionPermission } from './shell/orientation';
+import { setUpAbout } from './ui/about';
+import { friendlyMessage, type CompassProblem } from './ui/friendlyMessage';
 
 const kidLine = document.querySelector<HTMLParagraphElement>('#kid-line')!;
 const details = document.querySelector<HTMLParagraphElement>('#details')!;
@@ -17,22 +19,10 @@ const allowButton = document.querySelector<HTMLButtonElement>('#allow')!;
 
 const SETUP_DONE_KEY = 'plane-goes:permissions-asked';
 
-const locationMessages: Record<LocationError, string> = {
-  denied:
-    'Location is turned off for this app. On iPhone: Settings › Privacy & Security › Location Services › Safari Websites › While Using the App. Then try again.',
-  unavailable: "We couldn't tell where we are. Try again in a moment.",
-  timeout: "Finding where we are took too long. Try again!",
-  unsupported: "This browser can't share location.",
+const motionProblems: Record<Exclude<MotionPermission, 'granted'>, CompassProblem> = {
+  denied: 'motion-denied',
+  unsupported: 'motion-unsupported',
 };
-
-const motionMessages: Record<Exclude<MotionPermission, 'granted'>, string> = {
-  denied:
-    "The compass is turned off, so we can't tell which plane you're pointing at. Close the app completely, open it again, and tap Allow when your iPhone asks about Motion & Orientation.",
-  unsupported: "This phone can't share its compass, so we can't tell which plane you're pointing at.",
-};
-
-const silentCompassMessage =
-  "The compass isn't answering. Hold the phone up toward the plane and try again. If it keeps happening, wave the phone in a figure-eight to wake the compass.";
 
 function show(line: string, detail = ''): void {
   kidLine.textContent = line;
@@ -66,13 +56,13 @@ async function onAllow(): Promise<void> {
   try {
     const motion = await requestMotionPermission();
     if (motion !== 'granted') {
-      permissionsHelp.textContent = motionMessages[motion];
+      permissionsHelp.textContent = friendlyMessage(motionProblems[motion]).detail;
       return;
     }
     try {
       await readLocationOnce();
     } catch (reason) {
-      permissionsHelp.textContent = locationMessages[reason as LocationError] ?? locationMessages.unavailable;
+      permissionsHelp.textContent = friendlyMessage(reason).detail;
       return;
     }
     rememberSetupDone();
@@ -82,6 +72,11 @@ async function onAllow(): Promise<void> {
   }
 }
 
+function showProblem(problem: unknown): void {
+  const { kidLine: line, detail } = friendlyMessage(problem);
+  show(line, detail);
+}
+
 async function onSpot(): Promise<void> {
   button.disabled = true;
   try {
@@ -89,7 +84,7 @@ async function onSpot(): Promise<void> {
     const motion = await requestMotionPermission();
     show('Looking… 👀');
     if (motion !== 'granted') {
-      show('Which way is up? 🧭', motionMessages[motion]);
+      showProblem(motionProblems[motion]);
       return;
     }
 
@@ -97,7 +92,7 @@ async function onSpot(): Promise<void> {
     try {
       position = await readLocationOnce();
     } catch (reason) {
-      show('Where are we? 🗺️', locationMessages[reason as LocationError] ?? locationMessages.unavailable);
+      showProblem(reason);
       return;
     }
 
@@ -105,19 +100,13 @@ async function onSpot(): Promise<void> {
     const pointing = await waitForPointing();
     const time = Date.now();
     if (!pointing) {
-      show('Which way is up? 🧭', silentCompassMessage);
+      showProblem('compass-silent');
       return;
     }
 
     const outcome = await fetchNearbyAircraft(position);
     if (!outcome.ok) {
-      const detail =
-        outcome.reason === 'busy'
-          ? 'The plane finder is busy. Try again in a few seconds.'
-          : outcome.reason === 'offline'
-            ? 'No signal right now. Try again soon.'
-            : 'The plane finder had a hiccup. Try again.';
-      show('Planes are hiding! ☁️', detail);
+      showProblem(outcome.reason);
       return;
     }
 
@@ -127,6 +116,10 @@ async function onSpot(): Promise<void> {
     } else {
       show(result.kidLine);
     }
+  } catch (reason) {
+    // Never show a raw error to the Spotter.
+    console.error(reason);
+    showProblem(reason);
   } finally {
     button.disabled = false;
   }
@@ -135,3 +128,4 @@ async function onSpot(): Promise<void> {
 allowButton.addEventListener('click', () => void onAllow());
 button.addEventListener('click', () => void onSpot());
 showScreen(readSetupDone() ? 'spot' : 'permissions');
+setUpAbout();
