@@ -4,6 +4,7 @@
  */
 import { detailsFor, type GrownUpDetails } from './details';
 import { kidLineFor } from './kidLine';
+import { noRoutes, type RouteLookup } from './route';
 import type { SnapshotAircraft } from './types';
 import { judgeVerdict, type Verdict } from './verdict';
 
@@ -13,7 +14,10 @@ export interface AircraftDescription {
   details: GrownUpDetails;
 }
 
-export function describeAircraft(ac: SnapshotAircraft): AircraftDescription {
-  const verdict = judgeVerdict(ac);
-  return { verdict, kidLine: kidLineFor(verdict), details: detailsFor(ac, verdict) };
+/** Describes one aircraft, asking `lookupRoute` for its route by callsign. */
+export function describeAircraft(ac: SnapshotAircraft, lookupRoute: RouteLookup = noRoutes): AircraftDescription {
+  const callsign = ac.flight?.trim();
+  const route = callsign ? lookupRoute(callsign) : undefined;
+  const verdict = judgeVerdict(ac, route);
+  return { verdict, kidLine: kidLineFor(verdict), details: detailsFor(ac, verdict, route) };
 }
