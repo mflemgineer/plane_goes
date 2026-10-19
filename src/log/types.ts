@@ -24,6 +24,10 @@ export interface LoggedAircraft {
   /** ICAO 24-bit address */
   hex: string;
   callsign?: string;
+  /** Airline name, when route data knows it (Grown-up Details). */
+  airline?: string;
+  /** ICAO type designator, e.g. "B738", when known (Grown-up Details). */
+  aircraftType?: string;
   /** Origin when known (city or airport code). */
   origin?: string;
   /** Destination when known (city or airport code). */
@@ -32,6 +36,8 @@ export interface LoggedAircraft {
   position?: { lat: number; lon: number };
   /** The plane's altitude in feet at the time of the Sighting. */
   altitudeFt?: number;
+  /** Arrivals only: estimated minutes to landing at the time of the Sighting (Grown-up Details). */
+  minutesToLanding?: number;
 }
 
 /** What the app hands the log for one Sighting. */
@@ -42,8 +48,12 @@ export interface SightingInput {
   aircraft?: LoggedAircraft;
 }
 
-/** Bumped whenever the stored Sighting shape changes. */
-export const SIGHTING_FORMAT_VERSION = 1;
+/**
+ * Bumped whenever the stored Sighting shape changes.
+ * 1: first shape. 2: adds optional airline, aircraftType and minutesToLanding to the aircraft
+ * (additive, so version 1 records still read as they are).
+ */
+export const SIGHTING_FORMAT_VERSION = 2;
 
 /** One Sighting as it is kept on the phone. */
 export interface StoredSighting {
@@ -71,5 +81,10 @@ export interface Walk {
   end: number;
   /** Oldest first. */
   sightings: StoredSighting[];
+  /** Planes on the Walk: repeat Sightings of one Flight count once; each Mystery Plane counts. */
   planeCount: number;
+  /** e.g. "5 planes — 2 JFK Arrivals, 1 LaGuardia Departure, 1 Overflight to London, 1 Mystery Plane" */
+  summary: string;
+  /** e.g. "Davey spotted 4 planes this morning" */
+  credit: string;
 }

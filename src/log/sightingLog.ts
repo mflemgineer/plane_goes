@@ -4,7 +4,8 @@ import {
   type LoggedAircraft,
   type LoggedVerdict,
   type SightingInput, type StoredSighting, type Walk } from './types';
-import { walkName } from './walkName';
+import { distinctPlanes, walkCredit, walkSummary } from './summary';
+import { walkName, walkPhrase } from './walkName';
 
 export interface Clock {
   /** ms since epoch */
@@ -40,10 +41,13 @@ function pickVerdict(verdict: LoggedVerdict): LoggedVerdict {
 function pickAircraft(aircraft: LoggedAircraft): LoggedAircraft {
   const picked: LoggedAircraft = { hex: aircraft.hex };
   if (aircraft.callsign) picked.callsign = aircraft.callsign;
+  if (aircraft.airline) picked.airline = aircraft.airline;
+  if (aircraft.aircraftType) picked.aircraftType = aircraft.aircraftType;
   if (aircraft.origin) picked.origin = aircraft.origin;
   if (aircraft.destination) picked.destination = aircraft.destination;
   if (aircraft.position) picked.position = { lat: aircraft.position.lat, lon: aircraft.position.lon };
   if (typeof aircraft.altitudeFt === 'number') picked.altitudeFt = aircraft.altitudeFt;
+  if (typeof aircraft.minutesToLanding === 'number') picked.minutesToLanding = aircraft.minutesToLanding;
   return picked;
 }
 
@@ -117,6 +121,18 @@ export function createSightingLog({ clock, storage, newId = defaultId }: Sightin
       return log.addSighting({ verdict: { kind: 'mystery' }, kidLine: MYSTERY_KID_LINE });
     },
 
+    /** Removes one Sighting. Does nothing if it is no longer kept. */
+    deleteSighting(id: string): void {
+      const sightings = load();
+      const kept = sightings.filter((s) => s.id !== id);
+      if (kept.length !== sightings.length) save(kept);
+    },
+
+    /** Empties the log: every Walk and Sighting. The Spotter's name is a setting and stays. */
+    clear(): void {
+      storage.removeItem(SIGHTINGS_KEY);
+    },
+
     /** All Walks, newest first; each Walk's Sightings oldest first. */
     listWalks(): Walk[] {
       const sightings = load().sort((a, b) => a.time - b.time);
@@ -132,7 +148,9 @@ export function createSightingLog({ clock, storage, newId = defaultId }: Sightin
         start: group[0].time,
         end: group[group.length - 1].time,
         sightings: group,
-        planeCount: group.length,
+        planeCount: distinctPlanes(group).length,
+        summary: walkSummary(group),
+        credit: walkCredit(group, walkPhrase(group[0].time, clock.now())),
       }));
     },
   };
