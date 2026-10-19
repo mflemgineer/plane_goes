@@ -1,3 +1,4 @@
+import { MYSTERY_PLANE_KID_LINE } from '../engine';
 import type { LogStorage } from './storage';
 import {
   SIGHTING_FORMAT_VERSION,
@@ -22,8 +23,6 @@ export interface SightingLogDeps {
 /** A new Walk starts when more than this long has passed since the previous Sighting. */
 export const WALK_GAP_MS = 60 * 60_000;
 
-/** Matches the Sighting Engine's Mystery Plane Kid Line (GLOSSARY.md). */
-export const MYSTERY_KID_LINE = 'Looks like Amelia Earhart is flying that one! We could not find it.';
 
 const SPOTTER_KEY = 'plane-goes:spotter';
 const SIGHTINGS_KEY = 'plane-goes:sightings';
@@ -125,7 +124,7 @@ export function createSightingLog({ clock, storage, newId = defaultId }: Sightin
      * Mystery Plane, dated `spottedAt` (the Spot tap, ms since epoch) so it lands on the right Walk.
      */
     addDismissedAmbiguous(spottedAt: number): StoredSighting {
-      return add({ verdict: { kind: 'mystery' }, kidLine: MYSTERY_KID_LINE }, spottedAt);
+      return add({ verdict: { kind: 'mystery' }, kidLine: MYSTERY_PLANE_KID_LINE }, spottedAt);
     },
 
     /** Removes one Sighting. Does nothing if it is no longer kept. */

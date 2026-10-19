@@ -1,3 +1,4 @@
+import { displayCallsign } from './callsign';
 import { describeAircraft } from './describeAircraft';
 import { MYSTERY_PLANE_KID_LINE } from './kidLine';
 import { likelyMatches, rankByAim, type Candidate } from './match';
@@ -38,6 +39,5 @@ export function choose(candidate: Match): SightingResult {
 }
 
 function toMatch({ aircraft: ac, distanceNm }: Candidate, lookupRoute: RouteLookup): Match {
-  const callsign = ac.flight?.trim() || ac.r?.trim() || ac.hex;
-  return { flight: { hex: ac.hex, callsign, distanceNm }, ...describeAircraft(ac, lookupRoute) };
+  return { flight: { hex: ac.hex, callsign: displayCallsign(ac), distanceNm }, ...describeAircraft(ac, lookupRoute) };
 }

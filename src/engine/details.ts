@@ -1,5 +1,6 @@
 /** Grown-up Details: the smaller facts under the Kid Line, from the Aircraft Snapshot and (when it fits) the route. */
 import { altitudeFt, onGround } from './altitude';
+import { displayCallsign } from './callsign';
 import { describeEnd, type Route } from './route';
 import type { SnapshotAircraft } from './types';
 import { usesRoute, type Verdict } from './verdict';
@@ -22,7 +23,7 @@ export interface GrownUpDetails {
 }
 
 export function detailsFor(ac: SnapshotAircraft, verdict: Verdict, route?: Route): GrownUpDetails {
-  const details: GrownUpDetails = { callsign: ac.flight?.trim() || ac.r?.trim() || ac.hex };
+  const details: GrownUpDetails = { callsign: displayCallsign(ac) };
   // The airline comes from the callsign itself, so it holds even when the route is stale.
   if (route?.airline) details.airline = route.airline;
   if (ac.t) details.aircraftType = ac.t;
