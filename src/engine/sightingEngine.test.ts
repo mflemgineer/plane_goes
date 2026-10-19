@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { spot, type AircraftSnapshot, type Observation, type SightingResult, type SnapshotAircraft } from './index';
+import { choose, nearbyPlanes, spot, type AircraftSnapshot, type Observation, type SightingResult, type SnapshotAircraft } from './index';
 import brooklynSnapshot from './__fixtures__/adsblol-point-brooklyn.json';
 
 const time = 1792367920501;
@@ -93,6 +93,93 @@ describe('Sighting Engine: Mystery Plane', () => {
   });
 });
 
+describe('Sighting Engine: not that one? (Ambiguous)', () => {
+  it('returns Ambiguous, best-aimed first, when two planes are close to where the phone points', () => {
+    // Both 10 miles out at 5,000 ft (~5.4° up): one 2° off the aim, the other 4° off on the other side.
+    const snapshot = sky(
+      plane('second', { milesEast: 10, altFt: 5000, bearing: 94 }),
+      plane('first', { milesEast: 10, altFt: 5000, bearing: 88 }),
+    );
+
+    const result = spot(pointing(90, 5.4), snapshot);
+
+    expect(result.kind).toBe('ambiguous');
+    if (result.kind !== 'ambiguous') return;
+    expect(result.candidates.map((c) => c.flight.callsign)).toEqual(['first', 'second']);
+  });
+
+  it('returns a single match when the runner-up is clearly farther from the aim', () => {
+    // The winner is 1° off the aim; the runner-up is 12° off: still in tolerance, but well outside the margin.
+    const snapshot = sky(
+      plane('runner-up', { milesEast: 10, altFt: 5000, bearing: 102 }),
+      plane('winner', { milesEast: 10, altFt: 5000, bearing: 91 }),
+    );
+
+    const result = spot(pointing(90, 5.4), snapshot);
+
+    expect(result.kind).toBe('matched');
+    expect(callsignOf(result)).toBe('winner');
+  });
+
+  it('offers only a short list, best-aimed first, when many planes crowd the aim', () => {
+    const snapshot = sky(
+      ...[86, 87, 88, 89, 90].map((bearing) => plane(`b${bearing}`, { milesEast: 10, altFt: 5000, bearing })),
+    );
+
+    const result = spot(pointing(90, 5.4), snapshot);
+
+    expect(result.kind).toBe('ambiguous');
+    if (result.kind !== 'ambiguous') return;
+    expect(result.candidates.map((c) => c.flight.callsign)).toEqual(['b90', 'b89', 'b88']);
+  });
+
+  it('choosing a candidate makes it the answer', () => {
+    const snapshot = sky(
+      plane('second', { milesEast: 10, altFt: 5000, bearing: 94 }),
+      plane('first', { milesEast: 10, altFt: 5000, bearing: 88 }),
+    );
+    const result = spot(pointing(90, 5.4), snapshot);
+    if (result.kind !== 'ambiguous') throw new Error('expected Ambiguous');
+
+    const chosen = choose(result.candidates[1]);
+
+    expect(chosen.kind).toBe('matched');
+    expect(callsignOf(chosen)).toBe('second');
+  });
+});
+
+describe('Sighting Engine: all nearby planes', () => {
+  it('lists every plane in the search radius, closest to the aim first, even ones far off the aim', () => {
+    const snapshot = sky(
+      plane('behind-you', { milesEast: 10, altFt: 5000, bearing: 270 }),
+      plane('too-far', { milesEast: 30, altFt: 38000, bearing: 90 }),
+      plane('close', { milesEast: 10, altFt: 5000, bearing: 92 }),
+      { hex: 'no-position', flight: 'NOPOS   ' },
+      plane('off-a-bit', { milesEast: 10, altFt: 5000, bearing: 130 }),
+    );
+
+    const nearby = nearbyPlanes(pointing(90, 5.4), snapshot);
+
+    expect(nearby.map((c) => c.flight.callsign)).toEqual(['close', 'off-a-bit', 'behind-you']);
+  });
+
+  it('lists the real Brooklyn sky, starting with the plane being pointed at', () => {
+    const nearby = nearbyPlanes(pointing(209, 11), brooklynSnapshot as AircraftSnapshot);
+
+    expect(nearby[0].flight.callsign).toBe('DAL2561');
+    expect(nearby.length).toBe(brooklynSnapshot.ac.length);
+  });
+
+  it('choosing a plane from the list makes it the answer, even with nothing near the aim', () => {
+    const snapshot = sky(plane('behind-you', { milesEast: 10, altFt: 5000, bearing: 270 }));
+    expect(spot(pointing(90, 5.4), snapshot).kind).toBe('mystery');
+
+    const [picked] = nearbyPlanes(pointing(90, 5.4), snapshot);
+
+    expect(callsignOf(choose(picked))).toBe('behind-you');
+  });
+});
+
 // --- helpers to build Aircraft Snapshots shaped like adsb.lol responses ---
 
 const MILES_PER_DEG_LAT = 69.05;
@@ -101,8 +188,17 @@ function eastOf(miles: number) {
   return { lat: brooklyn.lat, lon: brooklyn.lon + miles / (MILES_PER_DEG_LAT * Math.cos((brooklyn.lat * Math.PI) / 180)) };
 }
 
-function plane(callsign: string, { milesEast, altFt }: { milesEast: number; altFt: number }): SnapshotAircraft {
-  return { hex: `x-${callsign}`, flight: callsign.padEnd(8, ' '), ...eastOf(milesEast), alt_baro: altFt, alt_geom: altFt };
+/** A plane `milesEast` miles away (or that far along `bearing`, degrees true), at `altFt`. */
+function plane(
+  callsign: string,
+  { milesEast, altFt, bearing = 90 }: { milesEast: number; altFt: number; bearing?: number },
+): SnapshotAircraft {
+  const b = (bearing * Math.PI) / 180;
+  const north = milesEast * Math.cos(b);
+  const east = milesEast * Math.sin(b);
+  const lat = brooklyn.lat + north / MILES_PER_DEG_LAT;
+  const lon = eastOf(east).lon;
+  return { hex: `x-${callsign}`, flight: callsign.padEnd(8, ' '), lat, lon, alt_baro: altFt, alt_geom: altFt };
 }
 
 function sky(...ac: SnapshotAircraft[]): AircraftSnapshot {

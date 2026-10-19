@@ -52,6 +52,18 @@ export interface Flight {
   distanceNm: number;
 }
 
+/**
+ * One plane the engine offers as an answer. A Matched result is one of these; an Ambiguous
+ * result and the all-nearby-planes list are lists of them, so choosing one makes it the answer
+ * (`{ kind: 'matched', ...candidate }`). Per-plane answer fields (Verdict, Kid Line, Grown-up
+ * Details) belong here so every candidate carries its own.
+ */
+export interface Match {
+  flight: Flight;
+}
+
 export type SightingResult =
-  | { kind: 'matched'; flight: Flight }
+  | ({ kind: 'matched' } & Match)
+  /** "Not that one?": a short list of planes close to the aim, best-aimed first. */
+  | { kind: 'ambiguous'; candidates: Match[] }
   | { kind: 'mystery'; kidLine: string };
