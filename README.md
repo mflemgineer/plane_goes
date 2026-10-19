@@ -5,7 +5,7 @@ Point your phone at a plane, tap one big button, and find out where it's going. 
 ## Layout
 
 - `src/engine/` — the **Sighting Engine**: a pure module (no network, sensors or storage). `spot(observation, snapshot)` returns a Sighting Result. Tests live next to it and go through `src/engine/index.ts` only. Real API fixtures are in `src/engine/__fixtures__/`. Aircraft matching (which plane the phone points at) lives in `src/engine/match.ts`; tune `SEARCH_RADIUS_MILES` and `MATCH_TOLERANCE_DEG` there.
-- `src/shell/` — browser adapters: one-shot location, the proxy client.
+- `src/shell/` — browser adapters: one-shot location, the proxy client, voice (`voice.ts`: reads the Kid Line aloud; muted by default, female English voice preferred; tune voice names in `FEMALE_NAMES`).
 - `src/main.ts`, `src/ui/`, `index.html` — the UI shell (plain DOM, no framework).
 - `api/aircraft.ts` — the **position proxy**, a Vercel Node function at `/api/aircraft?lat=..&lon=..[&radius=nm]`. It forwards to adsb.lol with a descriptive User-Agent, caps the radius at 30 nm (default 25), edge-caches for 5 s, and returns HTTP 429 `{"error":"busy"}` when adsb.lol rate-limits. If adsb.lol ever needs an API key, add it in `upstreamHeaders()`.
 

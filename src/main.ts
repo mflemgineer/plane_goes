@@ -6,6 +6,7 @@ import { spot } from './engine';
 import { fetchNearbyAircraft } from './shell/aircraftApi';
 import { readLocationOnce, type LocationError } from './shell/location';
 import { requestMotionPermission, waitForPointing, type MotionPermission } from './shell/orientation';
+import { createVoice } from './shell/voice';
 
 const kidLine = document.querySelector<HTMLParagraphElement>('#kid-line')!;
 const details = document.querySelector<HTMLParagraphElement>('#details')!;
@@ -83,6 +84,7 @@ async function onAllow(): Promise<void> {
 }
 
 async function onSpot(): Promise<void> {
+  voice.unlock(); // iPhone: speech must be unlocked from the tap itself, before any await.
   button.disabled = true;
   try {
     // iPhone needs the motion request to come straight from the tap, before anything else is awaited.
@@ -127,10 +129,31 @@ async function onSpot(): Promise<void> {
     } else {
       show(result.kidLine);
     }
+    voice.speak(kidLine.textContent ?? '');
   } finally {
     button.disabled = false;
   }
 }
+
+// Voice: muted by default; the sound toggle and replay sit on the result screen.
+const voice = createVoice();
+const soundButton = document.querySelector<HTMLButtonElement>('#sound')!;
+const replayButton = document.querySelector<HTMLButtonElement>('#replay')!;
+
+function renderVoiceControls(): void {
+  const on = !voice.isMuted();
+  soundButton.textContent = on ? '🔊 Sound on' : '🔇 Sound off';
+  soundButton.setAttribute('aria-pressed', String(on));
+  replayButton.hidden = !on;
+}
+
+soundButton.addEventListener('click', () => {
+  voice.setMuted(!voice.isMuted());
+  renderVoiceControls();
+  voice.speak(kidLine.textContent ?? ''); // Speaking from this tap also unlocks iPhone speech.
+});
+replayButton.addEventListener('click', () => voice.speak(kidLine.textContent ?? ''));
+renderVoiceControls();
 
 allowButton.addEventListener('click', () => void onAllow());
 button.addEventListener('click', () => void onSpot());

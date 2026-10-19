@@ -83,6 +83,35 @@ main[hidden] {
   display: none;
 }
 
+.voice-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.voice-button {
+  min-height: 3.5rem;
+  padding: 0 1.5rem;
+  border: 3px solid var(--ink);
+  border-radius: 1.75rem;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 1.25rem;
+  font-weight: 800;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.voice-button[aria-pressed='true'] {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.voice-button[hidden] {
+  display: none;
+}
+
 .allow-button {
   min-height: 4rem;
   padding: 0 2.5rem;

@@ -21,6 +21,10 @@
     <main id="app">
       <p id="kid-line" class="kid-line" aria-live="polite">Spot a plane! ✈️</p>
       <p id="details" class="details"></p>
+      <div class="voice-controls">
+        <button id="sound" class="voice-button" type="button" aria-pressed="false">🔇 Sound off</button>
+        <button id="replay" class="voice-button" type="button" hidden>🔁 Say it again</button>
+      </div>
       <button id="spot" class="spot-button" type="button">Spot!</button>
     </main>
     <script type="module" src="/src/main.ts"></script>
