@@ -5,6 +5,7 @@
  * (bearing, and elevation angle above the horizon allowing for altitude and earth curvature),
  * then score it by the angle between that direction and where the phone points.
  */
+import { skyHeightFt } from './altitude';
 import type { Observation, SnapshotAircraft } from './types';
 
 /** Tunable: aircraft farther than this from the parent are ignored, at any altitude. */
@@ -35,13 +36,6 @@ export interface Candidate {
   distanceNm: number;
   /** Degrees between where the phone points and where the aircraft appears. */
   offAimDeg: number;
-}
-
-/** Altitude above mean sea level in feet: GNSS altitude preferred, `ground` treated as 0. */
-function altitudeFt(ac: SnapshotAircraft): number {
-  if (typeof ac.alt_geom === 'number') return ac.alt_geom;
-  if (typeof ac.alt_baro === 'number') return ac.alt_baro;
-  return 0;
 }
 
 /** Central angle (radians) and initial bearing (degrees true) from the parent to a point. */
@@ -83,7 +77,7 @@ export function rankByAim(observation: Observation, aircraft: SnapshotAircraft[]
     const { angle, bearing } = centralAngleAndBearing(observation.lat, observation.lon, ac.lat, ac.lon);
     const distanceNm = angle * EARTH_RADIUS_NM;
     if (distanceNm > radiusNm) continue;
-    const elevation = elevationDeg(angle, altitudeFt(ac) / FEET_PER_NM);
+    const elevation = elevationDeg(angle, (skyHeightFt(ac) ?? 0) / FEET_PER_NM);
     const offAimDeg = angleBetween(observation.heading, observation.elevation, bearing, elevation);
     candidates.push({ aircraft: ac, distanceNm, offAimDeg });
   }

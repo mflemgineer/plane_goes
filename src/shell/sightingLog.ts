@@ -2,7 +2,7 @@
  * Shell glue for the Sighting Log: the app's log instance on device storage, and the
  * mapping from what the Sighting Engine returned to what the log stores.
  */
-import type { AircraftSnapshot, Match } from '../engine';
+import { altitudeFt, type AircraftSnapshot, type Match } from '../engine';
 import { createSightingLog, memoryStorage, type LogStorage, type LoggedVerdict, type SightingInput } from '../log';
 
 /** localStorage when the browser allows it; otherwise in-memory (e.g. some private modes). */
@@ -32,7 +32,6 @@ function loggedVerdict(verdict: Match['verdict']): LoggedVerdict {
  */
 export function matchedSighting(match: Match, snapshot: AircraftSnapshot): SightingInput {
   const ac = snapshot.ac.find((a) => a.hex === match.flight.hex);
-  const altitudeFt = match.details.altitudeFt ?? (ac?.alt_baro === 'ground' ? 0 : ac?.alt_geom);
   return {
     verdict: loggedVerdict(match.verdict),
     kidLine: match.kidLine,
@@ -45,7 +44,7 @@ export function matchedSighting(match: Match, snapshot: AircraftSnapshot): Sight
       origin: match.details.origin,
       destination: match.details.destination,
       position: typeof ac?.lat === 'number' && typeof ac.lon === 'number' ? { lat: ac.lat, lon: ac.lon } : undefined,
-      altitudeFt,
+      altitudeFt: ac ? altitudeFt(ac) : match.details.altitudeFt,
       minutesToLanding: match.details.minutesToLanding,
     },
   };

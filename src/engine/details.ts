@@ -1,4 +1,5 @@
 /** Grown-up Details: the smaller facts under the Kid Line, from the Aircraft Snapshot and (when it fits) the route. */
+import { altitudeFt, onGround } from './altitude';
 import { describeEnd, type Route } from './route';
 import type { SnapshotAircraft } from './types';
 import { usesRoute, type Verdict } from './verdict';
@@ -14,7 +15,7 @@ export interface GrownUpDetails {
   origin?: string;
   /** Where the Flight is going, e.g. "Miami (MIA)" — only when the route fits the motion. */
   destination?: string;
-  /** Barometric altitude in feet, when airborne. */
+  /** Altitude in feet (barometric, else GNSS), when airborne. */
   altitudeFt?: number;
   /** Arrivals only: distance to the airport ÷ ground speed, rounded. */
   minutesToLanding?: number;
@@ -29,7 +30,8 @@ export function detailsFor(ac: SnapshotAircraft, verdict: Verdict, route?: Route
     details.origin = describeEnd(route.origin);
     details.destination = describeEnd(route.destination);
   }
-  if (typeof ac.alt_baro === 'number') details.altitudeFt = ac.alt_baro;
+  const altitude = altitudeFt(ac);
+  if (altitude !== undefined && !onGround(ac)) details.altitudeFt = altitude;
   if (verdict.kind === 'arrival' && ac.gs) {
     details.minutesToLanding = Math.round((verdict.distanceNm / ac.gs) * 60);
   }

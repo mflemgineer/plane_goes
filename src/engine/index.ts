@@ -4,6 +4,7 @@
  * This is the public interface; tests go through it only.
  */
 export { choose, nearbyPlanes, spot } from './spot';
+export { altitudeFt } from './altitude';
 export type {
   AircraftSnapshot,
   Flight,

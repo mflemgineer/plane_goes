@@ -3,6 +3,7 @@
  * and distance/bearing to each known airport. A route only adds city names
  * (or names an Other Nearby Airport) when it agrees with the motion; it never overrides it.
  */
+import { altitudeFt } from './altitude';
 import { AIRPORTS, HOME_AIRPORTS, type Airport } from './airports';
 import { angleBetween, bearingDeg, distanceNm, toRad, type LatLon } from './geo';
 import { inNewYorkArea, knownAirportAt, type Route, type RouteAirport } from './route';
@@ -64,7 +65,7 @@ interface Motion {
 
 function motionOf(ac: SnapshotAircraft): Motion | undefined {
   const { lat, lon, track } = ac;
-  const altitude = typeof ac.alt_baro === 'number' ? ac.alt_baro : undefined;
+  const altitude = altitudeFt(ac);
   const rate = ac.baro_rate ?? ac.geom_rate;
   if (lat === undefined || lon === undefined || track === undefined || altitude === undefined || rate === undefined) {
     return undefined;

@@ -159,6 +159,16 @@ describe('Verdict, Kid Line and Grown-up Details', () => {
     expect(result.details).toEqual({ callsign: 'JBU699', aircraftType: 'A320' });
   });
 
+  it('falls back to GNSS altitude when no barometric altitude is broadcast', () => {
+    // Same JFK final as above, but only alt_geom: still an Arrival, and the altitude still shown.
+    const result = spotOnly(
+      aircraft({ flight: 'DAL412  ', t: 'A321', lat: 40.62, lon: -73.86, alt_geom: 1600, gs: 140, track: 72, baro_rate: -768 }),
+    );
+
+    expect(result.verdict).toMatchObject({ kind: 'arrival', airport: { code: 'JFK' } });
+    expect(result.details.altitudeFt).toBe(1600);
+  });
+
   it('gives a Mystery Plane the Amelia Earhart Kid Line', () => {
     const result = spot({ ...brooklyn, heading: 120, elevation: 30, time: NOW }, { ac: [], now: NOW });
 
