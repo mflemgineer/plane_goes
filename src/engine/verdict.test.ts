@@ -56,6 +56,49 @@ describe('Verdict, Kid Line and Grown-up Details', () => {
     expect(result.details).toEqual({ callsign: 'DAL412', aircraftType: 'A321', altitudeFt: 1500, minutesToLanding: 2 });
   });
 
+  it('calls a climbing aircraft near LaGuardia a Departure from LaGuardia', () => {
+    // Just northeast of LGA, climbing out over Flushing Bay (JFK is farther away, behind it too).
+    const result = spotOnly(
+      aircraft({ flight: 'AAL2168 ', t: 'B738', lat: 40.8, lon: -73.84, alt_baro: 2500, gs: 180, track: 45, baro_rate: 2304 }),
+    );
+
+    expect(result.verdict).toMatchObject({ kind: 'departure', airport: { code: 'LGA', name: 'LaGuardia' } });
+    expect(result.kidLine).toBe('Going up from LaGuardia! Up, up, up! 🛫');
+    expect(result.details).toEqual({ callsign: 'AAL2168', aircraftType: 'B738', altitudeFt: 2500 });
+  });
+
+  it('does not call a climber heading back toward the airport a Departure', () => {
+    // Real UAL51 (B764) climbing through 4,750 ft northwest of Newark, turning back south over it.
+    const result = spotOnly(real(jfkSnapshot, 'aa44cf'));
+
+    expect(result.verdict).toEqual({ kind: 'unknown' });
+  });
+
+  it('calls a real Newark climb-out a Departure from Newark', () => {
+    // Real AAL1446 (B738): 9,575 ft, climbing 2,688 ft/min, heading SSW away from EWR.
+    const result = spotOnly(real(brooklynSnapshot, 'aaee3b'));
+
+    expect(result.verdict).toMatchObject({ kind: 'departure', airport: { code: 'EWR' } });
+    expect(result.kidLine).toBe('Going up from Newark! Up, up, up! 🛫');
+  });
+
+  it('calls a high, level cruiser an Overflight', () => {
+    const result = spotOnly(
+      aircraft({ flight: 'JBU1601 ', t: 'A320', lat: 40.72, lon: -73.93, alt_baro: 35000, gs: 465, track: 205, baro_rate: 64 }),
+    );
+
+    expect(result.verdict).toEqual({ kind: 'overflight' });
+    expect(result.kidLine).toBe('Flying far, far away! 🌍');
+    expect(result.details).toEqual({ callsign: 'JBU1601', aircraftType: 'A320', altitudeFt: 35000 });
+  });
+
+  it('does not call a level plane at mid altitude near the airports an Overflight', () => {
+    // Real CPA840 (A35K) at 12,425 ft, just out of JFK — not far, far away yet.
+    const result = spotOnly(real(brooklynSnapshot, '789213'));
+
+    expect(result.verdict).toEqual({ kind: 'unknown' });
+  });
+
   it('does not force a bizjet descending toward Teterboro into a Home Airport Arrival', () => {
     // Real N807LP (C680): 700 ft, sinking 576 ft/min, tracking NE toward Teterboro.
     const result = spotOnly(real(brooklynSnapshot, 'aafce6'));
