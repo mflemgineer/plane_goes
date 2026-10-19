@@ -2,6 +2,7 @@
  * Shapes the Sighting Engine accepts and returns.
  * Vocabulary follows GLOSSARY.md.
  */
+import type { AircraftDescription } from './describeAircraft';
 
 /** Where the parent is standing and (later) where the phone points, at the moment of a Sighting. */
 export interface Observation {
@@ -53,5 +54,5 @@ export interface Flight {
 }
 
 export type SightingResult =
-  | { kind: 'matched'; flight: Flight }
+  | ({ kind: 'matched'; flight: Flight } & AircraftDescription)
   | { kind: 'mystery' };

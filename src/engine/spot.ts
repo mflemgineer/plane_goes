@@ -1,4 +1,5 @@
-import type { AircraftSnapshot, Observation, SightingResult } from './types';
+import { describeAircraft } from './describeAircraft';
+import type { AircraftSnapshot, Observation, SightingResult, SnapshotAircraft } from './types';
 
 const EARTH_RADIUS_NM = 3440.065;
 const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -18,6 +19,7 @@ function distanceNm(lat1: number, lon1: number, lat2: number, lon2: number): num
  */
 export function spot(observation: Observation, snapshot: AircraftSnapshot): SightingResult {
   let best: { hex: string; callsign: string; distanceNm: number } | undefined;
+  let bestAircraft: SnapshotAircraft | undefined;
 
   for (const ac of snapshot.ac) {
     if (typeof ac.lat !== 'number' || typeof ac.lon !== 'number') continue;
@@ -25,9 +27,10 @@ export function spot(observation: Observation, snapshot: AircraftSnapshot): Sigh
     if (!best || d < best.distanceNm) {
       const callsign = ac.flight?.trim() || ac.r?.trim() || ac.hex;
       best = { hex: ac.hex, callsign, distanceNm: d };
+      bestAircraft = ac;
     }
   }
 
-  if (!best) return { kind: 'mystery' };
-  return { kind: 'matched', flight: best };
+  if (!best || !bestAircraft) return { kind: 'mystery' };
+  return { kind: 'matched', flight: best, ...describeAircraft(bestAircraft) };
 }
