@@ -2,9 +2,9 @@
  * UI shell: wires the Spot button to location + compass → proxy → Sighting Engine.
  * Flight data is fetched only on a tap, never in the background.
  */
-import { spot } from './engine';
 import { fetchNearbyAircraft } from './shell/aircraftApi';
 import { readLocationOnce } from './shell/location';
+import { createRouteClient, spotWithRoutes } from './shell/routeApi';
 import { requestMotionPermission, waitForPointing, type MotionPermission } from './shell/orientation';
 import { setUpAbout } from './ui/about';
 import { friendlyMessage, type CompassProblem } from './ui/friendlyMessage';
@@ -19,6 +19,16 @@ const permissionsHelp = document.querySelector<HTMLParagraphElement>('#permissio
 const allowButton = document.querySelector<HTMLButtonElement>('#allow')!;
 
 const SETUP_DONE_KEY = 'plane-goes:permissions-asked';
+
+const routeClient = createRouteClient({ storage: safeLocalStorage() });
+
+function safeLocalStorage(): Storage | null {
+  try {
+    return localStorage;
+  } catch {
+    return null;
+  }
+}
 
 const motionProblems: Record<Exclude<MotionPermission, 'granted'>, CompassProblem> = {
   denied: 'motion-denied',
@@ -111,7 +121,7 @@ async function onSpot(): Promise<void> {
       return;
     }
 
-    const result = spot({ ...position, ...pointing, time }, outcome.snapshot);
+    const result = await spotWithRoutes({ ...position, ...pointing, time }, outcome.snapshot, routeClient);
     show(result.kidLine);
     if (result.kind === 'matched') renderGrownUpDetails(details, result.details);
   } catch (reason) {
