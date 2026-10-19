@@ -57,6 +57,14 @@ const cirrus = () =>
 const jfkFinal = () =>
   aircraft({ flight: 'DAL412  ', t: 'A321', lat: 40.62, lon: -73.86, alt_baro: 1500, gs: 140, track: 72, baro_rate: -768 });
 
+/** A bizjet just north of Teterboro, climbing straight out to the north. */
+const tebClimber = () =>
+  aircraft({ flight: 'EJA512  ', t: 'C68A', lat: 40.9, lon: -74.06, alt_baro: 2200, gs: 170, track: 0, baro_rate: 2500 });
+
+/** A bizjet southwest of Newark, descending on a track straight at Teterboro. */
+const tebArrival = () =>
+  aircraft({ flight: 'EJA733  ', t: 'C68A', lat: 40.6, lon: -74.35, alt_baro: 4000, gs: 220, track: 41, baro_rate: -900 });
+
 describe('Routes: city names, airline and Other Nearby Airports', () => {
   it('names the origin city for an Arrival at JFK with a matching route', () => {
     const result = spotOnly(jfkFinal(), routes({ DAL412: { airline: 'Delta Air Lines', origin: BOS, destination: JFK } }));
@@ -140,6 +148,34 @@ describe('Routes: city names, airline and Other Nearby Airports', () => {
 
     expect(result.verdict).toEqual({ kind: 'arrival', airport: expect.objectContaining({ code: 'JFK' }), distanceNm: expect.any(Number) });
     expect(result.kidLine).toBe('Coming down to JFK! Bye-bye, sky! 🛬');
+  });
+
+  it('does not call a jet climbing out of Teterboro, with no route, a Departure from LaGuardia', () => {
+    // Just north of TEB climbing straight out; LaGuardia (~11 nm) is the nearest Home Airport and lies behind it too.
+    const result = spotOnly(tebClimber());
+
+    expect(result.verdict).toEqual({ kind: 'unknown' });
+    expect(result.kidLine).toBe('A plane! Way up in the sky! ✈️');
+  });
+
+  it('calls a jet climbing out of Teterboro a Departure from Teterboro when its route says so', () => {
+    const result = spotOnly(tebClimber(), routes({ EJA512: { origin: TEB, destination: BOS } }));
+
+    expect(result.verdict).toMatchObject({ kind: 'departure', airport: { code: 'TEB' }, destination: { city: 'Boston' } });
+    expect(result.kidLine).toBe('Going up from Teterboro to Boston! Up, up, up! 🛫');
+  });
+
+  it('does not call a jet descending toward Teterboro past Newark, with no route, an Arrival at Newark', () => {
+    // Southwest of Newark, tracking straight at Teterboro; Newark is ahead too, just off the nose.
+    const result = spotOnly(tebArrival());
+
+    expect(result.verdict).toEqual({ kind: 'unknown' });
+  });
+
+  it('calls a jet descending toward Teterboro past Newark an Arrival at Teterboro when its route says so', () => {
+    const result = spotOnly(tebArrival(), routes({ EJA733: { origin: MIA, destination: TEB } }));
+
+    expect(result.verdict).toMatchObject({ kind: 'arrival', airport: { code: 'TEB' }, origin: { city: 'Miami' } });
   });
 
   it('uses a fitting route for a light aircraft rather than the small-plane catch-all', () => {

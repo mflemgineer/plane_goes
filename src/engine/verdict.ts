@@ -3,7 +3,7 @@
  * and distance/bearing to each known airport. A route only adds city names
  * (or names an Other Nearby Airport) when it agrees with the motion; it never overrides it.
  */
-import { AIRPORTS, type Airport } from './airports';
+import { AIRPORTS, HOME_AIRPORTS, type Airport } from './airports';
 import { angleBetween, bearingDeg, distanceNm, toRad, type LatLon } from './geo';
 import { inNewYorkArea, knownAirportAt, type Route, type RouteAirport } from './route';
 import type { SnapshotAircraft } from './types';
@@ -82,18 +82,22 @@ function isEnRoute(position: LatLon, route: Route): boolean {
   return via <= direct * ROUTE_MAX_DETOUR_RATIO + ROUTE_DETOUR_SLACK_NM;
 }
 
-/** Airports a descending aircraft is tracking toward, the one it will pass closest to first. */
-function arrivalAirports({ position, track }: Motion): { airport: Airport; distanceNm: number }[] {
-  const ahead: { airport: Airport; distanceNm: number; crossTrackNm: number }[] = [];
+/** An airport the aircraft's motion fits, and how far away it is. */
+interface AirportFit {
+  airport: Airport;
+  distanceNm: number;
+}
+
+/** Airports a descending aircraft is tracking toward, with how close it will pass each, closest first. */
+function arrivalAirports({ position, track }: Motion): (AirportFit & { crossTrackNm: number })[] {
+  const ahead: (AirportFit & { crossTrackNm: number })[] = [];
   for (const airport of AIRPORTS) {
     const d = distanceNm(position, airport);
     const off = angleBetween(track, bearingDeg(position, airport));
     if (d > ARRIVAL_MAX_DISTANCE_NM || off > ARRIVAL_TRACK_TOLERANCE_DEG) continue;
     ahead.push({ airport, distanceNm: d, crossTrackNm: d * Math.sin(toRad(off)) });
   }
-  return ahead
-    .sort((a, b) => a.crossTrackNm - b.crossTrackNm)
-    .map(({ airport, distanceNm }) => ({ airport, distanceNm }));
+  return ahead.sort((a, b) => a.crossTrackNm - b.crossTrackNm);
 }
 
 function judgeArrival(motion: Motion, route: Route | undefined): Verdict | undefined {
@@ -101,15 +105,18 @@ function judgeArrival(motion: Motion, route: Route | undefined): Verdict | undef
   const routeAirport = route && knownAirportAt(route.destination);
   const fitting = routeAirport && ahead.find((a) => a.airport === routeAirport);
   if (route && fitting && isEnRoute(motion.position, route)) {
-    return { kind: 'arrival', ...fitting, origin: route.origin };
+    return { kind: 'arrival', airport: fitting.airport, distanceNm: fitting.distanceNm, origin: route.origin };
   }
-  // Without a fitting route, only a Home Airport is named from motion alone.
+  // Without a fitting route, only a Home Airport is named from motion alone, and only when no
+  // Other Nearby Airport fits at least as well (then we can't tell which one it is).
   const home = ahead.find((a) => a.airport.group === 'home');
-  return home && { kind: 'arrival', ...home };
+  if (!home) return undefined;
+  const otherFitsAsWell = ahead.some((a) => a.airport.group === 'other-nearby' && a.crossTrackNm <= home.crossTrackNm);
+  return otherFitsAsWell ? undefined : { kind: 'arrival', airport: home.airport, distanceNm: home.distanceNm };
 }
 
 /** Climbing out from this airport: close to it and moving away from it. */
-function departingFrom({ position, track }: Motion, airport: Airport): { airport: Airport; distanceNm: number } | undefined {
+function departingFrom({ position, track }: Motion, airport: Airport): AirportFit | undefined {
   const d = distanceNm(position, airport);
   if (d > DEPARTURE_MAX_DISTANCE_NM) return undefined;
   const off = angleBetween(track, bearingDeg(airport, position));
@@ -122,14 +129,19 @@ function judgeDeparture(motion: Motion, route: Route | undefined): Verdict | und
   if (route && fitting && isEnRoute(motion.position, route)) {
     return { kind: 'departure', ...fitting, destination: route.destination };
   }
-  // Without a fitting route: a climber took off from the nearest Home Airport, so it must be moving away from that one.
+  // Without a fitting route: a climber took off from the nearest Home Airport, so it must be moving away from that one…
   let nearest: Airport | undefined;
-  for (const airport of AIRPORTS) {
-    if (airport.group !== 'home') continue;
+  for (const airport of HOME_AIRPORTS) {
     if (!nearest || distanceNm(motion.position, airport) < distanceNm(motion.position, nearest)) nearest = airport;
   }
   const home = nearest && departingFrom(motion, nearest);
-  return home && { kind: 'departure', ...home };
+  if (!home) return undefined;
+  // …unless it is also climbing away from an Other Nearby Airport at least as close: then we can't tell which.
+  const otherFitsAsWell = AIRPORTS.some(
+    (airport) =>
+      airport.group === 'other-nearby' && (departingFrom(motion, airport)?.distanceNm ?? Infinity) <= home.distanceNm,
+  );
+  return otherFitsAsWell ? undefined : { kind: 'departure', ...home };
 }
 
 /** Both ends outside the New York area, the aircraft between them, flying from origin toward destination. */
