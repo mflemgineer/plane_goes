@@ -39,7 +39,7 @@ export function createLogScreen(log: SightingLog, elements: {
   clearConfirm: HTMLElement;
   clearYes: HTMLButtonElement;
   clearNo: HTMLButtonElement;
-}) {
+}, { onCleared = () => {} }: { onCleared?: () => void } = {}) {
   const { list, clearButton, clearConfirm, clearYes, clearNo } = elements;
   /** Walks the parent has opened, by Walk ID; kept while the app is open. */
   const open = new Set<string>();
@@ -107,6 +107,7 @@ export function createLogScreen(log: SightingLog, elements: {
   clearNo.addEventListener('click', render);
   clearYes.addEventListener('click', () => {
     safely(() => log.clear());
+    safely(onCleared);
     open.clear();
     render();
   });

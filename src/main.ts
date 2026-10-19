@@ -41,6 +41,9 @@ const logView = createLogScreen(sightingLog, {
   clearConfirm: document.querySelector<HTMLElement>('#clear-confirm')!,
   clearYes: document.querySelector<HTMLButtonElement>('#clear-yes')!,
   clearNo: document.querySelector<HTMLButtonElement>('#clear-no')!,
+}, {
+  // Clearing the whole log also forgets the day's remembered routes on the device.
+  onCleared: () => routeClient.clearCache(),
 });
 const pick = document.querySelector<HTMLElement>('#pick')!;
 const pickTitle = document.querySelector<HTMLParagraphElement>('#pick-title')!;

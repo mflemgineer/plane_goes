@@ -22,7 +22,12 @@ function fakeFetch(routes: Record<string, () => Response>) {
 
 function memoryStorage(): RouteStorage & { data: Map<string, string> } {
   const data = new Map<string, string>();
-  return { data, getItem: (k) => data.get(k) ?? null, setItem: (k, v) => void data.set(k, v) };
+  return {
+    data,
+    getItem: (k) => data.get(k) ?? null,
+    setItem: (k, v) => void data.set(k, v),
+    removeItem: (k) => void data.delete(k),
+  };
 }
 
 const ADSBDB = 'https://api.adsbdb.com/v0/callsign/';
@@ -164,10 +169,26 @@ describe('route client', () => {
       setItem: () => {
         throw new Error('QuotaExceededError');
       },
+      removeItem: () => {
+        throw new Error('SecurityError');
+      },
     };
     const client = createRouteClient({ fetch, storage: broken, now: () => NOON });
 
     expect(await client.lookup('RPA4791')).toMatchObject({ origin: { city: 'Columbus' } });
+    expect(() => client.clearCache()).not.toThrow();
+  });
+
+  it('forgets every remembered route when the parent clears the log', async () => {
+    const fetch = fakeFetch({ [`${ADSBDB}RPA4791`]: () => json(adsbdbRPA4791) });
+    const storage = memoryStorage();
+    const client = () => createRouteClient({ fetch, storage, now: () => NOON });
+
+    await client().lookup('RPA4791');
+    client().clearCache();
+    await client().lookup('RPA4791');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 });
 

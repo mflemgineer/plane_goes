@@ -6,7 +6,7 @@
  */
 import { spot, type AircraftSnapshot, type Observation, type Route, type RouteAirport, type RouteLookup } from '../engine';
 
-export type RouteStorage = Pick<Storage, 'getItem' | 'setItem'>;
+export type RouteStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export interface RouteClientOptions {
   fetch?: typeof fetch;
@@ -19,6 +19,8 @@ export interface RouteClientOptions {
 
 export interface RouteClient {
   lookup(callsign: string): Promise<Route | undefined>;
+  /** Forgets every remembered route on the device (when the parent clears the Sighting Log). */
+  clearCache(): void;
 }
 
 const ADSBDB_CALLSIGN = 'https://api.adsbdb.com/v0/callsign/';
@@ -104,6 +106,14 @@ export function createRouteClient({
   }
 
   return {
+    clearCache() {
+      try {
+        storage?.removeItem(CACHE_KEY);
+      } catch {
+        // Unavailable storage holds nothing to forget.
+      }
+    },
+
     async lookup(raw) {
       const callsign = raw.trim().toUpperCase();
       if (!callsign) return undefined;
