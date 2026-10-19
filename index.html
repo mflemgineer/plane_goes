@@ -9,6 +9,15 @@
     <link rel="stylesheet" href="/src/ui/styles.css" />
   </head>
   <body>
+    <section id="permissions" class="permissions" hidden>
+      <p class="kid-line">Let's find planes! ✈️</p>
+      <p class="details">
+        To know which plane you're pointing at, we need your location and the phone's compass.
+        We only look when you tap Spot, and we never save where you are.
+      </p>
+      <p id="permissions-help" class="details" aria-live="polite"></p>
+      <button id="allow" class="allow-button" type="button">Tap to allow</button>
+    </section>
     <main id="app">
       <p id="kid-line" class="kid-line" aria-live="polite">Spot a plane! ✈️</p>
       <p id="details" class="details"></p>

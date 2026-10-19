@@ -66,3 +66,32 @@ main {
 .spot-button:disabled {
   opacity: 0.6;
 }
+
+.permissions {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: max(1.5rem, env(safe-area-inset-top)) 16px max(1.5rem, env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.permissions[hidden],
+main[hidden] {
+  display: none;
+}
+
+.allow-button {
+  min-height: 4rem;
+  padding: 0 2.5rem;
+  border: none;
+  border-radius: 2rem;
+  background: var(--button);
+  color: var(--button-ink);
+  font-size: 1.75rem;
+  font-weight: 800;
+  touch-action: manipulation;
+  cursor: pointer;
+}
