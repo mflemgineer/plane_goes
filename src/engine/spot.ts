@@ -1,18 +1,43 @@
 import { describeAircraft } from './describeAircraft';
 import { MYSTERY_PLANE_KID_LINE } from './kidLine';
-import { bestMatch } from './match';
-import type { RouteLookup } from './route';
-import type { AircraftSnapshot, Observation, SightingResult } from './types';
+import { likelyMatches, rankByAim, type Candidate } from './match';
+import { noRoutes, type RouteLookup } from './route';
+import type { AircraftSnapshot, Match, Observation, SightingResult } from './types';
 
 /**
- * Picks the aircraft the phone is pointing at, or a Mystery Plane when none is close enough.
- * `lookupRoute` (callsign → route or nothing) is supplied by the caller; the engine never fetches.
+ * Picks the aircraft the phone is pointing at. Several planes close to the aim → Ambiguous;
+ * none close enough → Mystery Plane. `lookupRoute` (callsign → route or nothing) is supplied
+ * by the caller; the engine never fetches.
  */
-export function spot(observation: Observation, snapshot: AircraftSnapshot, lookupRoute?: RouteLookup): SightingResult {
-  const best = bestMatch(observation, snapshot.ac);
-  if (!best) return { kind: 'mystery', kidLine: MYSTERY_PLANE_KID_LINE };
+export function spot(
+  observation: Observation,
+  snapshot: AircraftSnapshot,
+  lookupRoute: RouteLookup = noRoutes,
+): SightingResult {
+  const matches = likelyMatches(observation, snapshot.ac).map((c) => toMatch(c, lookupRoute));
+  if (matches.length === 0) return { kind: 'mystery', kidLine: MYSTERY_PLANE_KID_LINE };
+  if (matches.length > 1) return { kind: 'ambiguous', candidates: matches };
+  return { kind: 'matched', ...matches[0] };
+}
 
-  const ac = best.aircraft;
+/**
+ * Every plane within the search radius, closest to where the phone points first, for when
+ * pointing doesn't work. Pass a pick to `choose` to make it the answer.
+ */
+export function nearbyPlanes(
+  observation: Observation,
+  snapshot: AircraftSnapshot,
+  lookupRoute: RouteLookup = noRoutes,
+): Match[] {
+  return rankByAim(observation, snapshot.ac).map((c) => toMatch(c, lookupRoute));
+}
+
+/** The parent picked a plane from "not that one?" or the all-nearby-planes list: it becomes the answer. */
+export function choose(candidate: Match): SightingResult {
+  return { kind: 'matched', ...candidate };
+}
+
+function toMatch({ aircraft: ac, distanceNm }: Candidate, lookupRoute: RouteLookup): Match {
   const callsign = ac.flight?.trim() || ac.r?.trim() || ac.hex;
-  return { kind: 'matched', flight: { hex: ac.hex, callsign, distanceNm: best.distanceNm }, ...describeAircraft(ac, lookupRoute) };
+  return { flight: { hex: ac.hex, callsign, distanceNm }, ...describeAircraft(ac, lookupRoute) };
 }

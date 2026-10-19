@@ -3,10 +3,11 @@
  * Takes an Observation, an Aircraft Snapshot and a caller-supplied route lookup, and returns a Sighting Result.
  * This is the public interface; tests go through it only.
  */
-export { spot } from './spot';
+export { choose, nearbyPlanes, spot } from './spot';
 export type {
   AircraftSnapshot,
   Flight,
+  Match,
   Observation,
   SightingResult,
   SnapshotAircraft,

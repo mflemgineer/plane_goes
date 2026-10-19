@@ -2,10 +2,23 @@
  * UI shell: wires the Spot button to location + compass → proxy → Sighting Engine.
  * Flight data is fetched only on a tap, never in the background.
  */
+import {
+  choose,
+  nearbyPlanes,
+  spot,
+  type AircraftSnapshot,
+  type Match,
+  type Observation,
+  type RouteLookup,
+  type SightingResult,
+} from './engine';
 import { fetchNearbyAircraft } from './shell/aircraftApi';
 import { readLocationOnce } from './shell/location';
-import { createRouteClient, spotWithRoutes } from './shell/routeApi';
+import { createRouteClient, fetchRoutesForSighting } from './shell/routeApi';
 import { requestMotionPermission, waitForPointing, type MotionPermission } from './shell/orientation';
+import { matchedSighting, sightingLog } from './shell/sightingLog';
+import { renderWalks } from './ui/logScreen';
+import { createVoice } from './shell/voice';
 import { setUpAbout } from './ui/about';
 import { friendlyMessage, type CompassProblem } from './ui/friendlyMessage';
 import { renderGrownUpDetails } from './ui/grownUpDetails';
@@ -17,6 +30,19 @@ const app = document.querySelector<HTMLElement>('#app')!;
 const permissions = document.querySelector<HTMLElement>('#permissions')!;
 const permissionsHelp = document.querySelector<HTMLParagraphElement>('#permissions-help')!;
 const allowButton = document.querySelector<HTMLButtonElement>('#allow')!;
+const spotterScreen = document.querySelector<HTMLElement>('#spotter')!;
+const spotterForm = document.querySelector<HTMLFormElement>('#spotter-form')!;
+const spotterInput = document.querySelector<HTMLInputElement>('#spotter-name')!;
+const spotterCancel = document.querySelector<HTMLButtonElement>('#spotter-cancel')!;
+const logScreen = document.querySelector<HTMLElement>('#log')!;
+const walksList = document.querySelector<HTMLUListElement>('#walks')!;
+const pick = document.querySelector<HTMLElement>('#pick')!;
+const pickTitle = document.querySelector<HTMLParagraphElement>('#pick-title')!;
+const pickList = document.querySelector<HTMLUListElement>('#pick-list')!;
+const allNearbyButton = document.querySelector<HTMLButtonElement>('#all-nearby')!;
+
+/** The last Sighting's inputs, kept in memory only so the parent can open the all-nearby-planes list. */
+let lastSighting: { observation: Observation; snapshot: AircraftSnapshot; routes: RouteLookup } | undefined;
 
 const SETUP_DONE_KEY = 'plane-goes:permissions-asked';
 
@@ -38,6 +64,59 @@ const motionProblems: Record<Exclude<MotionPermission, 'granted'>, CompassProble
 function show(line: string, detail = ''): void {
   kidLine.textContent = line;
   details.textContent = detail;
+  hidePicker();
+}
+
+function hidePicker(): void {
+  pick.hidden = true;
+  pickList.replaceChildren();
+}
+
+/** A list of planes to choose from; tapping one makes it the answer. */
+function showPicker(title: string, candidates: Match[]): void {
+  pickTitle.textContent = title;
+  pickList.replaceChildren(
+    ...candidates.map((candidate) => {
+      const item = document.createElement('li');
+      const choice = document.createElement('button');
+      choice.type = 'button';
+      // Each candidate shows its own Kid Line, plus the callsign so the parent can tell them apart.
+      choice.textContent = `${candidate.kidLine} · ${candidate.flight.callsign}`;
+      choice.addEventListener('click', () => onChosen(candidate));
+      item.append(choice);
+      return item;
+    }),
+  );
+  pick.hidden = false;
+}
+
+function showResult(result: SightingResult): void {
+  if (result.kind === 'matched') {
+    show(result.kidLine);
+    renderGrownUpDetails(details, result.details);
+  } else if (result.kind === 'ambiguous') {
+    show('Which plane? 🤔', 'A few planes are close to where you pointed.');
+    showPicker('Not that one? Tap the right plane:', result.candidates);
+  } else {
+    show(result.kidLine);
+  }
+  voice.speak(kidLine.textContent ?? '');
+}
+
+function onChosen(candidate: Match): void {
+  const result = choose(candidate);
+  showResult(result);
+  if (lastSighting) recordResult(result, lastSighting.snapshot, true);
+}
+
+function showAllNearby(): void {
+  if (!lastSighting) return;
+  const planes = nearbyPlanes(lastSighting.observation, lastSighting.snapshot, lastSighting.routes);
+  if (planes.length === 0) {
+    showPicker('No planes nearby right now.', []);
+    return;
+  }
+  showPicker('All nearby planes (closest to where you pointed first):', planes);
 }
 
 function readSetupDone(): boolean {
@@ -56,9 +135,13 @@ function rememberSetupDone(): void {
   }
 }
 
-function showScreen(screen: 'permissions' | 'spot'): void {
+type Screen = 'permissions' | 'spot' | 'spotter' | 'log';
+
+function showScreen(screen: Screen): void {
   permissions.hidden = screen !== 'permissions';
   app.hidden = screen !== 'spot';
+  spotterScreen.hidden = screen !== 'spotter';
+  logScreen.hidden = screen !== 'log';
 }
 
 /** First-run screen: asks for motion/compass (must be first, straight from the tap) and then location. */
@@ -89,7 +172,12 @@ function showProblem(problem: unknown): void {
 }
 
 async function onSpot(): Promise<void> {
+  voice.unlock(); // iPhone: speech must be unlocked from the tap itself, before any await.
+  settleAmbiguous();
+  savedSightingId = undefined;
   button.disabled = true;
+  lastSighting = undefined;
+  allNearbyButton.hidden = true;
   try {
     // iPhone needs the motion request to come straight from the tap, before anything else is awaited.
     const motion = await requestMotionPermission();
@@ -121,9 +209,13 @@ async function onSpot(): Promise<void> {
       return;
     }
 
-    const result = await spotWithRoutes({ ...position, ...pointing, time }, outcome.snapshot, routeClient);
-    show(result.kidLine);
-    if (result.kind === 'matched') renderGrownUpDetails(details, result.details);
+    const observation: Observation = { ...position, ...pointing, time };
+    const routes = await fetchRoutesForSighting(observation, outcome.snapshot, routeClient);
+    lastSighting = { observation, snapshot: outcome.snapshot, routes };
+    const result = spot(observation, outcome.snapshot, routes);
+    showResult(result);
+    recordResult(result, outcome.snapshot);
+    allNearbyButton.hidden = false;
   } catch (reason) {
     // Never show a raw error to the Spotter.
     console.error(reason);
@@ -133,7 +225,115 @@ async function onSpot(): Promise<void> {
   }
 }
 
+/*
+ * Sighting Log: every Sighting is saved without an extra tap. A storage failure must never spoil the Verdict.
+ * An Ambiguous result waits for the parent to choose; if they move on without choosing
+ * (spot again, open the Log, leave the app), it is saved as a Mystery Plane.
+ */
+let savedSightingId: string | undefined;
+let ambiguousPending = false;
+
+function saveSighting(save: () => { id: string }): void {
+  try {
+    savedSightingId = save().id;
+  } catch {
+    // Storage full or blocked: the Sighting just isn't kept.
+  }
+}
+
+/** Saves the result of a Spot tap, or of a plane chosen from a list (`chosen`). */
+function recordResult(result: SightingResult, snapshot: AircraftSnapshot, chosen = false): void {
+  if (result.kind === 'ambiguous') {
+    ambiguousPending = true;
+    savedSightingId = undefined;
+    return;
+  }
+  ambiguousPending = false;
+  const input =
+    result.kind === 'matched'
+      ? matchedSighting(result, snapshot)
+      : { verdict: { kind: 'mystery' as const }, kidLine: result.kidLine };
+  // Picking from the all-nearby list after a save corrects that Sighting rather than adding a second plane.
+  const correcting = chosen ? savedSightingId : undefined;
+  saveSighting(() => (correcting ? sightingLog.correctSighting(correcting, input) : sightingLog.addSighting(input)));
+}
+
+/** The parent moved on from an Ambiguous list without choosing: it still counts, as a Mystery Plane. */
+function settleAmbiguous(): void {
+  if (!ambiguousPending) return;
+  ambiguousPending = false;
+  saveSighting(() => sightingLog.addDismissedAmbiguous());
+}
+
+/** The screen to show once the Spotter has a name. */
+function homeScreen(): Screen {
+  return readSetupDone() ? 'spot' : 'permissions';
+}
+
+/** First launch asks for the Spotter's name; the ⚙️ button on the Log screen changes it later. */
+function openSpotterPrompt(changing: boolean): void {
+  spotterInput.value = sightingLog.getSpotterName() ?? '';
+  spotterCancel.hidden = !changing;
+  showScreen('spotter');
+  spotterInput.focus();
+}
+
+function onSpotterSaved(event: SubmitEvent): void {
+  event.preventDefault();
+  const name = spotterInput.value.trim();
+  if (!name) return;
+  const changing = sightingLog.getSpotterName() !== null;
+  try {
+    sightingLog.setSpotterName(name);
+  } catch {
+    // Storage blocked: keep going; we'll ask again next launch.
+  }
+  if (changing) openLog();
+  else showScreen(homeScreen());
+}
+
+function openLog(): void {
+  settleAmbiguous();
+  let walks: ReturnType<typeof sightingLog.listWalks> = [];
+  try {
+    walks = sightingLog.listWalks();
+  } catch {
+    // Unreadable storage: show an empty log.
+  }
+  renderWalks(walksList, walks, sightingLog.getSpotterName());
+  showScreen('log');
+}
+
+spotterForm.addEventListener('submit', onSpotterSaved);
+spotterCancel.addEventListener('click', openLog);
+document.querySelector('#open-log')!.addEventListener('click', openLog);
+document.querySelector('#log-back')!.addEventListener('click', () => showScreen('spot'));
+document.querySelector('#settings')!.addEventListener('click', () => openSpotterPrompt(true));
+
+// Voice: muted by default; the sound toggle and replay sit on the result screen.
+const voice = createVoice();
+const soundButton = document.querySelector<HTMLButtonElement>('#sound')!;
+const replayButton = document.querySelector<HTMLButtonElement>('#replay')!;
+
+function renderVoiceControls(): void {
+  const on = !voice.isMuted();
+  soundButton.textContent = on ? '🔊 Sound on' : '🔇 Sound off';
+  soundButton.setAttribute('aria-pressed', String(on));
+  replayButton.hidden = !on;
+}
+
+soundButton.addEventListener('click', () => {
+  voice.setMuted(!voice.isMuted());
+  renderVoiceControls();
+  voice.speak(kidLine.textContent ?? ''); // Speaking from this tap also unlocks iPhone speech.
+});
+replayButton.addEventListener('click', () => voice.speak(kidLine.textContent ?? ''));
+renderVoiceControls();
+
 allowButton.addEventListener('click', () => void onAllow());
 button.addEventListener('click', () => void onSpot());
-showScreen(readSetupDone() ? 'spot' : 'permissions');
+allNearbyButton.addEventListener('click', showAllNearby);
+window.addEventListener('pagehide', settleAmbiguous);
 setUpAbout();
+if (sightingLog.getSpotterName() === null) openSpotterPrompt(false);
+else showScreen(homeScreen());

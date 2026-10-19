@@ -4,7 +4,7 @@
  * cached on the device per callsign for the rest of the day, so repeat Sightings
  * of the same Flight cost nothing. A failed lookup just means no route.
  */
-import { spot, type AircraftSnapshot, type Observation, type Route, type RouteAirport, type SightingResult } from '../engine';
+import { spot, type AircraftSnapshot, type Observation, type Route, type RouteAirport, type RouteLookup } from '../engine';
 
 export type RouteStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
@@ -129,15 +129,16 @@ export function createRouteClient({
 }
 
 /**
- * Spots with routes: a first pass learns which callsigns the engine wants routes for
- * (the matched plane, or each candidate), those are fetched, then the engine runs again
- * with a plain synchronous lookup. The engine itself never fetches.
+ * Fetches the routes one Sighting needs and hands back a plain synchronous lookup for the engine.
+ * A dry run of `spot` learns which callsigns the engine asks about (the matched plane, or each
+ * "not that one?" candidate); only those are fetched. The engine itself never fetches.
+ * Callsigns not fetched (e.g. far down the all-nearby list) simply have no route.
  */
-export async function spotWithRoutes(
+export async function fetchRoutesForSighting(
   observation: Observation,
   snapshot: AircraftSnapshot,
   client: RouteClient,
-): Promise<SightingResult> {
+): Promise<RouteLookup> {
   const wanted: string[] = [];
   spot(observation, snapshot, (callsign) => {
     if (!wanted.includes(callsign)) wanted.push(callsign);
@@ -145,7 +146,7 @@ export async function spotWithRoutes(
   });
   const asked = wanted.slice(0, MAX_ROUTE_LOOKUPS_PER_SIGHTING);
   const found = new Map(await Promise.all(asked.map(async (cs) => [cs, await client.lookup(cs)] as const)));
-  return spot(observation, snapshot, (callsign) => found.get(callsign));
+  return (callsign) => found.get(callsign);
 }
 
 // ---- Response parsing (shapes recorded in src/engine/__fixtures__) ----

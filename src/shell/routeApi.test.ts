@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AircraftSnapshot } from '../engine';
-import { createRouteClient, spotWithRoutes, type RouteStorage } from './routeApi';
+import { spot, type AircraftSnapshot, type Observation } from '../engine';
+import { createRouteClient, fetchRoutesForSighting, type RouteClient, type RouteStorage } from './routeApi';
 import brooklynSnapshot from '../engine/__fixtures__/adsblol-point-brooklyn.json';
 import adsbdbRPA4791 from '../engine/__fixtures__/adsbdb-callsign-RPA4791.json';
 import adsbdbNotFound from '../engine/__fixtures__/adsbdb-callsign-notfound.json';
@@ -175,6 +175,12 @@ describe('spotting with routes', () => {
   // Real RPA4791 over Sunset Park, descending toward LaGuardia: ~2.6 nm south-southwest of Prospect Heights, ~9.5° up.
   const observation = { lat: 40.68, lon: -73.97, heading: 202, elevation: 9.5, time: NOON };
   const snapshot = brooklynSnapshot as AircraftSnapshot;
+
+  async function spotWithRoutes(obs: Observation, sky: AircraftSnapshot, client: RouteClient) {
+    const result = spot(obs, sky, await fetchRoutesForSighting(obs, sky, client));
+    if (result.kind !== 'matched') throw new Error(`expected a match, got ${result.kind}`);
+    return result;
+  }
 
   it('adds the route to the Verdict of the plane being pointed at', async () => {
     const fetch = fakeFetch({ [`${ADSBDB}RPA4791`]: () => json(adsbdbRPA4791) });

@@ -5,7 +5,8 @@ Point your phone at a plane, tap one big button, and find out where it's going. 
 ## Layout
 
 - `src/engine/` — the **Sighting Engine**: a pure module (no network, sensors or storage). `spot(observation, snapshot)` returns a Sighting Result. Tests live next to it and go through `src/engine/index.ts` only. Real API fixtures are in `src/engine/__fixtures__/`. Aircraft matching (which plane the phone points at) lives in `src/engine/match.ts`; tune `SEARCH_RADIUS_MILES` and `MATCH_TOLERANCE_DEG` there. The airport set lives in `src/engine/airports.ts`; the Verdict's altitude, vertical-rate, distance and track thresholds are named constants at the top of `src/engine/verdict.ts`. Kid Line templates are in `src/engine/kidLine.ts`.
-- `src/shell/` — browser adapters: one-shot location, the proxy client.
+- `src/log/` — the **Sighting Log**: a pure module with an injected clock and storage. `createSightingLog({ clock, storage })` adds Sightings (credited to the Spotter), lists Walks newest first and gets/sets the Spotter name. Tests go through `src/log/index.ts` only, with a fake clock and `memoryStorage()`. Records are built from an allow-list, so the observer's location and heading are never stored. Tune the Walk gap with `WALK_GAP_MS`.
+- `src/shell/` — browser adapters: one-shot location, the proxy client, voice (`voice.ts`: reads the Kid Line aloud; muted by default, female English voice preferred; tune voice names in `FEMALE_NAMES`), the app's Sighting Log on `localStorage` (`sightingLog.ts`).
 - `src/main.ts`, `src/ui/`, `index.html` — the UI shell (plain DOM, no framework).
 - `src/ui/friendlyMessage.ts` — every failure (no signal, proxy busy, location off, anything unexpected) becomes a gentle message; the UI never shows raw errors.
 - `public/` — the web app manifest and icons for **Add to Home Screen**. `public/icons/icon.svg` is the source; regenerate the PNGs (incl. `apple-touch-icon.png`) with `python3 scripts/make-icons.py` (needs Pillow).

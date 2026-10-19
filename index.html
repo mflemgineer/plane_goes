@@ -22,6 +22,24 @@
     <link rel="stylesheet" href="/src/ui/styles.css" />
   </head>
   <body>
+    <section id="spotter" class="permissions" hidden>
+      <p class="kid-line">Who's spotting planes? 👀</p>
+      <form id="spotter-form" class="spotter-form">
+        <label class="details" for="spotter-name">Your little Spotter's name</label>
+        <input id="spotter-name" class="spotter-input" type="text" autocomplete="off" autocapitalize="words"
+          maxlength="40" required />
+        <button class="allow-button" type="submit">Save</button>
+        <button id="spotter-cancel" class="text-button" type="button" hidden>Cancel</button>
+      </form>
+    </section>
+    <section id="log" class="log-screen" hidden>
+      <div class="top-bar">
+        <button id="log-back" class="text-button" type="button">‹ Spot</button>
+        <button id="settings" class="text-button" type="button" aria-label="Change the Spotter's name">⚙️ Name</button>
+      </div>
+      <p id="log-title" class="log-title">Sighting Log 📒</p>
+      <ul id="walks" class="walks"></ul>
+    </section>
     <section id="permissions" class="permissions" hidden>
       <p class="kid-line">Let's find planes! ✈️</p>
       <p class="details">
@@ -32,11 +50,23 @@
       <button id="allow" class="allow-button" type="button">Tap to allow</button>
     </section>
     <main id="app">
+      <div class="top-bar">
+        <button id="open-log" class="text-button" type="button">📒 Log</button>
+      </div>
       <button id="about-open" class="about-open" type="button" aria-haspopup="dialog" aria-controls="about">
         About
       </button>
       <p id="kid-line" class="kid-line" aria-live="polite">Spot a plane! ✈️</p>
       <p id="details" class="details"></p>
+      <section id="pick" class="pick" hidden>
+        <p id="pick-title" class="pick-title"></p>
+        <ul id="pick-list" class="pick-list"></ul>
+      </section>
+      <button id="all-nearby" class="link-button" type="button" hidden>All nearby planes</button>
+      <div class="voice-controls">
+        <button id="sound" class="voice-button" type="button" aria-pressed="false">🔇 Sound off</button>
+        <button id="replay" class="voice-button" type="button" hidden>🔁 Say it again</button>
+      </div>
       <button id="spot" class="spot-button" type="button">Spot!</button>
     </main>
 
