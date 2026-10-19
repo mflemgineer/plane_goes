@@ -3,14 +3,14 @@
  * Vocabulary follows GLOSSARY.md.
  */
 
-/** Where the parent is standing and (later) where the phone points, at the moment of a Sighting. */
+/** Where the parent is standing and where the phone points, at the moment of a Sighting. */
 export interface Observation {
   lat: number;
   lon: number;
-  /** Compass heading in degrees true, 0 = north. Not used yet. */
-  heading?: number;
-  /** Phone elevation angle in degrees above the horizon. Not used yet. */
-  elevation?: number;
+  /** Compass heading the phone points along, degrees true, 0 = north, clockwise. */
+  heading: number;
+  /** Phone elevation angle in degrees above the horizon (0 = horizon, 90 = straight up). */
+  elevation: number;
   /** ms since epoch */
   time: number;
 }
@@ -54,4 +54,4 @@ export interface Flight {
 
 export type SightingResult =
   | { kind: 'matched'; flight: Flight }
-  | { kind: 'mystery' };
+  | { kind: 'mystery'; kidLine: string };
