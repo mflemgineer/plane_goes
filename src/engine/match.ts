@@ -6,6 +6,7 @@
  * then score it by the angle between that direction and where the phone points.
  */
 import { skyHeightFt } from './altitude';
+import { bearingDeg, distanceNm, EARTH_RADIUS_NM, toDeg, toRad } from './geo';
 import type { Observation, SnapshotAircraft } from './types';
 
 /** Tunable: aircraft farther than this from the parent are ignored, at any altitude. */
@@ -23,12 +24,8 @@ export const AMBIGUITY_MARGIN_DEG = 5;
 /** Tunable: the most planes offered in a "not that one?" list. */
 export const MAX_AMBIGUOUS_CANDIDATES = 3;
 
-const EARTH_RADIUS_NM = 3440.065;
 const NM_PER_MILE = 0.868976;
 const FEET_PER_NM = 6076.12;
-
-const toRad = (deg: number) => (deg * Math.PI) / 180;
-const toDeg = (rad: number) => (rad * 180) / Math.PI;
 
 export interface Candidate {
   aircraft: SnapshotAircraft;
@@ -36,18 +33,6 @@ export interface Candidate {
   distanceNm: number;
   /** Degrees between where the phone points and where the aircraft appears. */
   offAimDeg: number;
-}
-
-/** Central angle (radians) and initial bearing (degrees true) from the parent to a point. */
-function centralAngleAndBearing(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const φ1 = toRad(lat1);
-  const φ2 = toRad(lat2);
-  const Δλ = toRad(lon2 - lon1);
-  const a = Math.sin((φ2 - φ1) / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-  const angle = 2 * Math.asin(Math.min(1, Math.sqrt(a)));
-  const y = Math.sin(Δλ) * Math.cos(φ2);
-  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-  return { angle, bearing: (toDeg(Math.atan2(y, x)) + 360) % 360 };
 }
 
 /**
@@ -60,7 +45,7 @@ function elevationDeg(angle: number, heightNm: number): number {
 }
 
 /** Angle between two sky directions (bearing/elevation pairs), degrees. */
-function angleBetween(az1: number, el1: number, az2: number, el2: number): number {
+function skyAngleBetween(az1: number, el1: number, az2: number, el2: number): number {
   const cos =
     Math.sin(toRad(el1)) * Math.sin(toRad(el2)) +
     Math.cos(toRad(el1)) * Math.cos(toRad(el2)) * Math.cos(toRad(az1 - az2));
@@ -74,12 +59,12 @@ export function rankByAim(observation: Observation, aircraft: SnapshotAircraft[]
 
   for (const ac of aircraft) {
     if (typeof ac.lat !== 'number' || typeof ac.lon !== 'number') continue;
-    const { angle, bearing } = centralAngleAndBearing(observation.lat, observation.lon, ac.lat, ac.lon);
-    const distanceNm = angle * EARTH_RADIUS_NM;
-    if (distanceNm > radiusNm) continue;
-    const elevation = elevationDeg(angle, (skyHeightFt(ac) ?? 0) / FEET_PER_NM);
-    const offAimDeg = angleBetween(observation.heading, observation.elevation, bearing, elevation);
-    candidates.push({ aircraft: ac, distanceNm, offAimDeg });
+    const position = { lat: ac.lat, lon: ac.lon };
+    const d = distanceNm(observation, position);
+    if (d > radiusNm) continue;
+    const elevation = elevationDeg(d / EARTH_RADIUS_NM, (skyHeightFt(ac) ?? 0) / FEET_PER_NM);
+    const offAimDeg = skyAngleBetween(observation.heading, observation.elevation, bearingDeg(observation, position), elevation);
+    candidates.push({ aircraft: ac, distanceNm: d, offAimDeg });
   }
 
   return candidates.sort((a, b) => a.offAimDeg - b.offAimDeg);

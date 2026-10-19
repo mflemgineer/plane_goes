@@ -1,8 +1,8 @@
-/** Small great-circle helpers shared by the Verdict and route checks. */
+/** Small great-circle helpers shared by matching, the Verdict and route checks. */
 
-const EARTH_RADIUS_NM = 3440.065;
+export const EARTH_RADIUS_NM = 3440.065;
 export const toRad = (deg: number) => (deg * Math.PI) / 180;
-const toDeg = (rad: number) => (rad * 180) / Math.PI;
+export const toDeg = (rad: number) => (rad * 180) / Math.PI;
 
 export interface LatLon {
   lat: number;
@@ -13,7 +13,7 @@ export function distanceNm(from: LatLon, to: LatLon): number {
   const dLat = toRad(to.lat - from.lat);
   const dLon = toRad(to.lon - from.lon);
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(from.lat)) * Math.cos(toRad(to.lat)) * Math.sin(dLon / 2) ** 2;
-  return 2 * EARTH_RADIUS_NM * Math.asin(Math.sqrt(a));
+  return 2 * EARTH_RADIUS_NM * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
 /** Initial great-circle bearing from one point to another, degrees true. */
